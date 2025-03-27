@@ -89,9 +89,7 @@ class SendMediaMessageJob implements ShouldQueue
             ]);
 
             // Eliminar archivo temporal si se creó
-            if (isset($tempFile) && file_exists($tempFile)) {
-                unlink($tempFile);
-            }
+            
 
             return $response->json();
 

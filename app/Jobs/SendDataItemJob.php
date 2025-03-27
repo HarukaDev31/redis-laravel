@@ -65,10 +65,7 @@ class SendDataItemJob implements ShouldQueue
             ]);
 
             // Eliminar archivo temporal después de enviarlo
-            if (file_exists($this->filePath)) {
-                unlink($this->filePath);
-            }
-
+           
             return $response->json();
 
         } catch (\Exception $e) {
