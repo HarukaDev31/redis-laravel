@@ -35,7 +35,7 @@ class SendDataItemJob implements ShouldQueue
     public function handle()
     {
         try {
-            sleep(1;
+            sleep(1);
 
             $response = Http::asMultipart()
                 ->post($this->apiUrl, [
