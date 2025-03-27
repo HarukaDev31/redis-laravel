@@ -57,7 +57,8 @@ class SendMediaMessageJob implements ShouldQueue
             if (empty($this->mimeType)) {
                 $this->mimeType = $this->detectMimeType($this->filePath);
             }
-
+            //wait 3 seconds
+            sleep(3);
             $response = Http::asMultipart()
                 ->post($this->apiUrl, [
                     [
