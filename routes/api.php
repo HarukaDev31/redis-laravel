@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\WhatsAppController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,8 +16,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('whatsapp')->group(function () {
-    Route::post('/welcome', 'WhatsAppController@sendWelcome');
-    Route::post('/data-item', 'WhatsAppController@sendDataItem');
-    Route::post('/message', 'WhatsAppController@sendMessage');
-    Route::post('/media', 'WhatsAppController@sendMedia');
+    Route::post('/welcome', [WhatsAppController::class, 'sendWelcome']);
+    Route::post('/data-item', [WhatsAppController::class, 'sendDataItem']);
+    Route::post('/message', [WhatsAppController::class, 'sendMessage']);
+    Route::post('/media', [WhatsAppController::class, 'sendMedia']);
 });
