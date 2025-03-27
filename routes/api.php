@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::prefix('whatsapp')->group(function () {
+    Route::post('/welcome', 'WhatsAppController@sendWelcome');
+    Route::post('/data-item', 'WhatsAppController@sendDataItem');
+    Route::post('/message', 'WhatsAppController@sendMessage');
+    Route::post('/media', 'WhatsAppController@sendMedia');
 });
