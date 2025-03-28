@@ -34,7 +34,7 @@ class SendSimpleMessageJob implements ShouldQueue
     public function handle()
     {
         try {
-           
+            sleep($this->sleep); // Esperar el tiempo especificado antes de enviar el mensaje
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json'
             ])->post($this->apiUrl, [
