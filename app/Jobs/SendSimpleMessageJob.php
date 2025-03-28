@@ -31,7 +31,7 @@ class SendSimpleMessageJob implements ShouldQueue
     public function handle()
     {
         try {
-            sleep(2);
+           
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json'
             ])->post($this->apiUrl, [
