@@ -24,18 +24,20 @@ class SendDataItemJob implements ShouldQueue
     
     /** @var string */
     private $phoneNumberId;
-
-    public function __construct(string $message, string $filePath, string $phoneNumberId = "51912705923@c.us")
+    
+    private $sleep;
+    public function __construct(string $message, string $filePath, string $phoneNumberId = "51912705923@c.us", int $sleep = 0)
     {
         $this->message = $message;
         $this->filePath = $filePath;
         $this->phoneNumberId = $phoneNumberId;
+        $this->sleep = $sleep;
     }
 
     public function handle()
     {
         try {
-
+            sleep($this->sleep); // Esperar el tiempo especificado antes de enviar el mensaje
             $response = Http::asMultipart()
                 ->post($this->apiUrl, [
                     [

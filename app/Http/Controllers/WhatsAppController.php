@@ -25,7 +25,8 @@ class WhatsAppController extends Controller
         try {
             \App\Jobs\SendWelcomeMessageJob::dispatch(
                 $request->input('carga'),
-                $request->input('phoneNumberId')
+                $request->input('phoneNumberId'),
+                $request->input('sleep', 0) // Valor por defecto de 0 si no se proporciona,
             );
 
             return response()->json([
@@ -66,7 +67,8 @@ class WhatsAppController extends Controller
             \App\Jobs\SendDataItemJob::dispatch(
                 $request->input('message'),
                 $tempPath,
-                $request->input('phoneNumberId')
+                $request->input('phoneNumberId'),
+                $request->input('sleep', 0) 
             );
 
             return response()->json([
@@ -100,7 +102,8 @@ class WhatsAppController extends Controller
         try {
             \App\Jobs\SendSimpleMessageJob::dispatch(
                 $request->input('message'),
-                $request->input('phoneNumberId')
+                $request->input('phoneNumberId'),
+                $request->input('sleep', 0) 
             );
 
             return response()->json([
@@ -143,7 +146,8 @@ class WhatsAppController extends Controller
                 $tempPath,
                 $request->input('phoneNumberId'),
                 $request->input('mimeType'),
-                $request->input('message')
+                $request->input('message'),
+                $request->input('sleep', 0) 
             );
 
             return response()->json([

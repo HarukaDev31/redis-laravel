@@ -22,15 +22,19 @@ class SendWelcomeMessageJob implements ShouldQueue
     /** @var string */
     private $phoneNumberId;
 
-    public function __construct(string $carga, string $phoneNumberId = "51912705923@c.us")
+    private $sleep;
+
+    public function __construct(string $carga, string $phoneNumberId = "51912705923@c.us", int $sleep = 0)
     {
         $this->carga = $carga;
         $this->phoneNumberId = $phoneNumberId;
+        $this->sleep = $sleep;
     }
 
     public function handle()
     {
         try {
+            sleep($this->sleep);
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json'
             ])->post($this->apiUrl, [

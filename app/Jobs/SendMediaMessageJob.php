@@ -28,16 +28,20 @@ class SendMediaMessageJob implements ShouldQueue
     /** @var string */
     private $phoneNumberId;
 
+    private $sleep = 0;
+
     public function __construct(
         string $filePath,
         string $phoneNumberId = "51912705923@c.us",
         ?string $mimeType = null,
-        ?string $message = null
+        ?string $message = null,
+        int $sleep = 0
     ) {
         $this->filePath = $filePath;
         $this->phoneNumberId = $phoneNumberId;
         $this->mimeType = $mimeType;
         $this->message = $message;
+        $this->sleep = $sleep;
     }
 
     public function handle()
@@ -58,6 +62,7 @@ class SendMediaMessageJob implements ShouldQueue
                 $this->mimeType = $this->detectMimeType($this->filePath);
             }
             //wait 3 seconds
+            sleep($this->sleep); // Esperar el tiempo especificado antes de enviar el mensaje
             $response = Http::asMultipart()
                 ->post($this->apiUrl, [
                     [
