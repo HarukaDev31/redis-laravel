@@ -15,6 +15,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
+        // call the command every 5 minutes message:start
+        $schedule->command('message:start')->everyFiveMinutes();
         // $schedule->command('inspire')->hourly();
     }
 
