@@ -9,13 +9,14 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class SendSimpleMessageJobCron implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private $apiUrl = 'https://whatsapp.probusiness.pe/enviar-mensaje';
-    private $table='contenedor_consolidado_cotizacion_crons';
+    private $table = 'contenedor_consolidado_cotizacion_crons';
     
     /** @var string */
     private $message;
@@ -53,6 +54,10 @@ class SendSimpleMessageJobCron implements ShouldQueue
                 
             ]);
             //update $this->table set executed_at = now() where id = $this->jobId status 'EXECUTED'
+            DB::table($this->table)->where('id', $this->jobId)->update([
+                'executed_at' => now(),
+                'status' => 'EXECUTED'
+            ]);
             return $response->json();
             
         } catch (\Exception $e) {
