@@ -55,7 +55,7 @@ class SendSimpleMessageJobCron implements ShouldQueue
             ]);
             //update $this->table set executed_at = now() where id = $this->jobId status 'EXECUTED'
             DB::table($this->table)->where('id', $this->jobId)->update([
-                'executed_at' => now(),
+                'executed_at' => date('Y-m-d H:i:s'),
                 'status' => 'EXECUTED'
             ]);
             return $response->json();
