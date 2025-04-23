@@ -47,7 +47,10 @@ class MessageCommand extends Command
             ->whereNull('executed_at')->where(
                 'execution_at', '<=', date('Y-m-d H:i:s')
             )->get();
-
+        Log::info('Data fetched from the database.'.json_encode( [
+            'count' => $data->count(),
+            'data' => $data
+        ]));
         $data = $data->map(function ($item) {
             $data_json = json_decode($item->data_json, true);
             return [
