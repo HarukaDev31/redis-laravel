@@ -15,7 +15,7 @@ class SendSimpleMessageJobCron implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private $apiUrl = env('SELLS_API_URL') ;
+    private $apiUrl;
     private $table = 'contenedor_consolidado_cotizacion_crons';
     
     /** @var string */
@@ -31,6 +31,7 @@ class SendSimpleMessageJobCron implements ShouldQueue
         $this->message = $message;
         $this->phoneNumberId = $phoneNumberId;
         $this->jobId = $jobId;
+        $this->apiUrl = env('SELLS_API_URL') ; 
     }
 
     public function handle()

@@ -14,7 +14,7 @@ class SendMediaMessageJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private $apiUrl = env('COORDINATION_API_URL') ;
+    private $apiUrl;
     
     /** @var string */
     private $filePath;
@@ -42,6 +42,7 @@ class SendMediaMessageJob implements ShouldQueue
         $this->mimeType = $mimeType;
         $this->message = $message;
         $this->sleep = $sleep;
+        $this->apiUrl = env('COORDINATION_API_URL'); // Mover la llamada a env() aquí
     }
 
     public function handle()

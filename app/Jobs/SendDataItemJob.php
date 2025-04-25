@@ -14,7 +14,7 @@ class SendDataItemJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private $apiUrl = env('COORDINATION_API_URL') ;
+    private $apiUrl ;
     
     /** @var string */
     private $message;
@@ -32,6 +32,8 @@ class SendDataItemJob implements ShouldQueue
         $this->filePath = $filePath;
         $this->phoneNumberId = $phoneNumberId;
         $this->sleep = $sleep;
+        $this->apiUrl = env('COORDINATION_API_URL'); // Move env() call here
+
     }
 
     public function handle()

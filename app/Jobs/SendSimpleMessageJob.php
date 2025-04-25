@@ -14,7 +14,7 @@ class SendSimpleMessageJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private $apiUrl = env('COORDINATION_API_URL') ;
+    private $apiUrl;
     
     /** @var string */
     private $message;
@@ -29,6 +29,7 @@ class SendSimpleMessageJob implements ShouldQueue
         $this->message = $message;
         $this->phoneNumberId = $phoneNumberId;
         $this->sleep = $sleep;
+        $this->apiUrl = env('COORDINATION_API_URL'); // Mover la llamada a env() aquí
     }
 
     public function handle()
