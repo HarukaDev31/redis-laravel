@@ -15,7 +15,7 @@ class SendSimpleMessageJobCron implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private $apiUrl = 'https://whatsapp.probusiness.pe/enviar-mensaje';
+    private $apiUrl = env('SELLS_API_URL') ;
     private $table = 'contenedor_consolidado_cotizacion_crons';
     
     /** @var string */

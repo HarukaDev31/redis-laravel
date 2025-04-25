@@ -14,7 +14,7 @@ class SendSimpleMessageJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private $apiUrl = 'https://whatsapp.probusiness.pe/enviar-mensaje';
+    private $apiUrl = env('COORDINATION_API_URL') ;
     
     /** @var string */
     private $message;
