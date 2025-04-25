@@ -17,6 +17,7 @@ class SendSimpleMessageJobCron implements ShouldQueue
 
     private $apiUrl;
     private $table = 'contenedor_consolidado_cotizacion_crons';
+    private $tableCotizacion = 'contenedor_consolidado_cotizacion';
     
     /** @var string */
     private $message;
@@ -54,11 +55,16 @@ class SendSimpleMessageJobCron implements ShouldQueue
                 'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
                 
             ]);
-            //update $this->table set executed_at = now() where id = $this->jobId status 'EXECUTED'
             DB::table($this->table)->where('id', $this->jobId)->update([
                 'executed_at' => date('Y-m-d H:i:s'),
                 'status' => 'EXECUTED'
             ]);
+            $idCotizacion = DB::table($this->table)->where('id', $this->jobId)->value('id_cotizacion');
+
+            DB::table($this->tableCotizacion)->where('id', $idCotizacion)->update([
+                'estado_cotizador' => 'CONTACTADO'
+            ]);
+            
             return $response->json();
             
         } catch (\Exception $e) {
