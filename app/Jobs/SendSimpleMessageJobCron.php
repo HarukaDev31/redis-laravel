@@ -60,8 +60,10 @@ class SendSimpleMessageJobCron implements ShouldQueue
                 'status' => 'EXECUTED'
             ]);
             $idCotizacion = DB::table($this->table)->where('id', $this->jobId)->value('id_cotizacion');
-
-            DB::table($this->tableCotizacion)->where('id', $idCotizacion)->update([
+            
+            DB::table($this->tableCotizacion)->where('id', $idCotizacion)
+            ->where('estado_cotizador', 'PENDIENTE')->
+            update([
                 'estado_cotizador' => 'CONTACTADO'
             ]);
             
