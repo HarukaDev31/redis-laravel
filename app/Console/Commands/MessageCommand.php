@@ -28,7 +28,7 @@ class MessageCommand extends Command
      *
      * @return void
      */
-    private $table='contenedor_consolidado_cotizacion_crons';
+    private $table = 'contenedor_consolidado_cotizacion_crons';
     public function __construct()
     {
         parent::__construct();
@@ -41,37 +41,46 @@ class MessageCommand extends Command
      */
     public function handle()
     {
-        Log::info('Starting the message command...');
-        Log::info('Fetching data from the database...');
-        $data = DB::table($this->table)
-            ->whereNull('executed_at')->where(
-                'execution_at', '<=', date('Y-m-d H:i:s')
-            )->get();
-        Log::info('Data fetched from the database.'.json_encode( [
-            'count' => $data->count(),
-            'data' => $data
-        ]));
-        $data = $data->map(function ($item) {
-            $data_json = json_decode($item->data_json, true);
-            return [
-                'message' => $data_json['message'] ?? '',
-                'phoneNumberId' => $data_json['phoneNumberId'] ?? '',
-                'id' => $item->id,
-            ];
-        });
-        Log::info('Data fetched successfully.');
-        foreach ($data as $item) {
-            $message = $item['message'];
-            $phoneNumberId = $item['phoneNumberId'];
-            $id = $item['id'];
-            Log::info('Sending message...', [
-                'message' => $message,
-                'phoneNumberId' => $phoneNumberId,
-                'id' => $id,
+        try {
+            Log::info('Starting the message command...');
+            Log::info('Fetching data from the database...');
+            $data = DB::table($this->table)
+                ->whereNull('executed_at')->where(
+                    'execution_at',
+                    '<=',
+                    date('Y-m-d H:i:s')
+                )->get();
+            Log::info('Data fetched from the database.' . json_encode([
+                'count' => $data->count(),
+                'data' => $data
+            ]));
+            $data = $data->map(function ($item) {
+                $data_json = json_decode($item->data_json, true);
+                return [
+                    'message' => $data_json['message'] ?? '',
+                    'phoneNumberId' => $data_json['phoneNumberId'] ?? '',
+                    'id' => $item->id,
+                ];
+            });
+            Log::info('Data fetched successfully.');
+            foreach ($data as $item) {
+                $message = $item['message'];
+                $phoneNumberId = $item['phoneNumberId'];
+                $id = $item['id'];
+                Log::info('Sending message...', [
+                    'message' => $message,
+                    'phoneNumberId' => $phoneNumberId,
+                    'id' => $id,
+                ]);
+
+                SendSimpleMessageJobCron::dispatch($message, $phoneNumberId, $id);
+            }
+            return 0;
+        } catch (\Exception $e) {
+            Log::error('Error in message command: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
             ]);
-        
-            SendSimpleMessageJobCron::dispatch($message, $phoneNumberId, $id);
+            return 1;
         }
-        return 0;
     }
 }
