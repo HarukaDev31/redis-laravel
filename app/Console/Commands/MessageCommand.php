@@ -56,6 +56,9 @@ class MessageCommand extends Command
             ]));
             $data = $data->map(function ($item) {
                 $data_json = json_decode($item->data_json, true);
+                Log::info('Data JSON decoded.', [
+                    'data_json' => $data_json
+                ]);
                 return [
                     'message' => $data_json['message'] ?? '',
                     'phoneNumberId' => $data_json['phoneNumberId'] ?? '',
