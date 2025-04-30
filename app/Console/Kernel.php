@@ -17,6 +17,7 @@ class Kernel extends ConsoleKernel
     {
         // call the command every 5 minutes message:start
         $schedule->command('message:start')->everyFiveMinutes();
+        $schedule->command('horizon:snapshot')->everyFiveMinutes();
         // $schedule->command('inspire')->hourly();
     }
 
