@@ -61,4 +61,9 @@ class SendSimpleMessageJob implements ShouldQueue
             $this->fail($e);
         }
     }
+    public function tags()
+    {
+        return ['send-simple-message-job', 'phoneNumberId:' . $this->phoneNumberId];
+
+    }
 }

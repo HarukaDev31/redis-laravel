@@ -127,4 +127,8 @@ class SendMediaMessageJob implements ShouldQueue
                 return mime_content_type($filePath) ?: 'application/octet-stream';
         }
     }
+    public function tags()
+    {
+        return ['send-media-message-job', 'phoneNumberId:' . $this->phoneNumberId];
+    }
 }

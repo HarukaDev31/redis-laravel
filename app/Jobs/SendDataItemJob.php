@@ -80,4 +80,8 @@ class SendDataItemJob implements ShouldQueue
             $this->fail($e);
         }
     }
+    public function tags()
+    {
+        return ['send-data-item-job', 'phoneNumberId:' . $this->phoneNumberId];
+    }
 }

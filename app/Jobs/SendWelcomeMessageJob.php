@@ -79,4 +79,8 @@ Nota: No cambiar ninguno de los datos, en caso tu proveedor tenga alguna consult
 🙍🏻‍♂ Álmacen China: Mr. Younus 
 📞 Wechat: 13185122926';
     }
+    public function tags()
+    {
+        return ['send-welcome-message-job', 'phoneNumberId:' . $this->phoneNumberId];
+    }
 }
