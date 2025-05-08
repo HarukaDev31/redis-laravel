@@ -51,6 +51,7 @@ class SendSimpleMessageJobCron implements ShouldQueue
                     'executed_at' => date('Y-m-d H:i:s'),
                     'status' => 'EXECUTED'
                 ]);
+                $this->fail(new \Exception('El id de cotizacion no existe en la tabla contenedor_consolidado_cotizacion'));
                 return;
             }
             $estadoCotizador = $cotizacion->value('estado_cotizador');
