@@ -38,10 +38,22 @@ class SendSimpleMessageJobCron implements ShouldQueue
     public function handle()
     {
         try {
-            // Esperar el tiempo especificado antes de enviar el mensaje
-            //validate if estado_cotizador is PENDIENTE
+
             $idCotizacion = DB::table($this->table)->where('id', $this->jobId)->value('id_cotizacion');
-            $estadoCotizador = DB::table($this->tableCotizacion)->where('id', $idCotizacion)->value('estado_cotizador');
+            $cotizacion = DB::table($this->tableCotizacion)->where('id', $idCotizacion);
+            if(!$cotizacion->exists()){
+                //delete job and log error 
+                Log::error('El id de cotizacion no existe en la tabla contenedor_consolidado_cotizacion', [
+                    'phoneNumberId' => $this->phoneNumberId,
+                    'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
+                ]);
+                DB::table($this->table)->where('id', $this->jobId)->update([
+                    'executed_at' => date('Y-m-d H:i:s'),
+                    'status' => 'EXECUTED'
+                ]);
+                return;
+            }
+            $estadoCotizador = $cotizacion->value('estado_cotizador');
             if ($estadoCotizador != 'PENDIENTE') {
                 Log::info('El estado del cotizador no es PENDIENTE, no se enviará el mensaje.', [
                     'phoneNumberId' => $this->phoneNumberId,
