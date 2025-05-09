@@ -49,7 +49,9 @@ class MessageCommand extends Command
                     'execution_at',
                     '<=',
                     date('Y-m-d H:i:s')
-                )->get();
+                )
+                ->where('status', 'PENDING')->
+                get();
             Log::info('Data fetched from the database.' . json_encode([
                 'count' => $data->count(),
                 'data' => $data
