@@ -163,4 +163,49 @@ class WhatsAppController extends Controller
             ], 500);
         }
     }
+    public function sendMediaInspection(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'fileContent' => 'required|string',
+            'fileName' => 'required|string',
+            'phoneNumberId' => 'required|string',
+            'mimeType' => 'nullable|string',
+            'message' => 'nullable|string',
+            'inspectionId' => 'required|integer'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Guardar archivo temporal
+            $tempPath = tempnam(sys_get_temp_dir(), 'whatsapp_');
+            file_put_contents($tempPath, base64_decode($request->input('fileContent')));
+
+            \App\Jobs\SendMediaInspectionMessageJob::dispatch(
+                $tempPath,
+                $request->input('phoneNumberId'),
+                $request->input('mimeType'),
+                $request->input('message'),
+                $request->input('sleep', 0),
+                $request->input('inspectionId') 
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Media Inspeccion encolada'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en sendMediaInspeccion: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
 }

@@ -20,4 +20,5 @@ Route::prefix('whatsapp')->group(function () {
     Route::post('/data-item', [WhatsAppController::class, 'sendDataItem']);
     Route::post('/message', [WhatsAppController::class, 'sendMessage']);
     Route::post('/media', [WhatsAppController::class, 'sendMedia']);
+    Route::post('/media-inspection', [WhatsAppController::class, 'sendMediaInspection']);
 });
