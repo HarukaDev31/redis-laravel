@@ -175,6 +175,7 @@ class WhatsAppController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::error('Error en sendMediaInspection: ' . $validator->errors());
             return response()->json([
                 'status' => 'error',
                 'errors' => $validator->errors()
