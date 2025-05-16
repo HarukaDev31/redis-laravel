@@ -173,7 +173,14 @@ class WhatsAppController extends Controller
             'message' => 'nullable|string',
             'inspectionId' => 'required|integer'
         ]);
-
+        Log::info('sendMediaInspection', [
+            'fileContent' => $request->input('fileContent'),
+            'fileName' => $request->input('fileName'),
+            'phoneNumberId' => $request->input('phoneNumberId'),
+            'mimeType' => $request->input('mimeType'),
+            'message' => $request->input('message'),
+            'inspectionId' => $request->input('inspectionId')
+        ]);
         if ($validator->fails()) {
             Log::error('Error en sendMediaInspection: ' . $validator->errors());
             return response()->json([
