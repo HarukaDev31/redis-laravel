@@ -62,7 +62,7 @@ class SendMediaInspectionMessageJob implements ShouldQueue
             }
             //find  id in table contenedor_consolidado_almacen_inspection
             $status = DB::table($this->table)->where('id', $this->inspectionId)->value('send_status');
-            if (false) {
+            if ($status == 'SENDED') {
                 Log::info('El estado de la inspección no es PENDING, no se enviará el mensaje.', [
                     'phoneNumberId' => $this->phoneNumberId,
                     'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
