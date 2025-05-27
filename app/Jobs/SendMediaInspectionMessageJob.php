@@ -58,6 +58,7 @@ class SendMediaInspectionMessageJob implements ShouldQueue
                     'phoneNumberId' => $this->phoneNumberId,
                     'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
                 ]);
+                $this->fail(new \Exception('El id de la inspección no está definido'));
                 return;
             }
             //find  id in table contenedor_consolidado_almacen_inspection
@@ -68,6 +69,7 @@ class SendMediaInspectionMessageJob implements ShouldQueue
                     'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
                 ]);
                 $this->fail(new \Exception('El estado de la inspección no es PENDING'));
+                return;
             }
 
             if (filter_var($this->filePath, FILTER_VALIDATE_URL)) {
