@@ -67,7 +67,7 @@ class SendMediaInspectionMessageJob implements ShouldQueue
                     'phoneNumberId' => $this->phoneNumberId,
                     'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
                 ]);
-                return;
+                $this->fail(new \Exception('El estado de la inspección no es PENDING'));
             }
 
             if (filter_var($this->filePath, FILTER_VALIDATE_URL)) {
