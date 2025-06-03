@@ -19,6 +19,7 @@ Route::prefix('whatsapp')->group(function () {
     Route::post('/welcome', [WhatsAppController::class, 'sendWelcome']);
     Route::post('/data-item', [WhatsAppController::class, 'sendDataItem']);
     Route::post('/message', [WhatsAppController::class, 'sendMessage']);
+    Route::post('/message-ventas', [WhatsAppController::class, 'sendMessageVentas']);
     Route::post('/media', [WhatsAppController::class, 'sendMedia']);
     Route::post('/media-inspection', [WhatsAppController::class, 'sendMediaInspection']);
 });

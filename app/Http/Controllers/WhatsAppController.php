@@ -119,6 +119,41 @@ class WhatsAppController extends Controller
             ], 500);
         }
     }
+    public function sendMessageVentas(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'message' => 'required|string',
+            'phoneNumberId' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            \App\Jobs\SendSimpleMessageJob::dispatch(
+                $request->input('message'),
+                $request->input('phoneNumberId'),
+                $request->input('sleep', 0),
+                'ventas' 
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Mensaje simple encolado'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en sendMessage: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
 
     public function sendMedia(Request $request)
     {
@@ -173,14 +208,7 @@ class WhatsAppController extends Controller
             'message' => 'nullable|string',
             'inspectionId' => 'required|integer'
         ]);
-        Log::info('sendMediaInspection', [
-            'fileContent' => $request->input('fileContent'),
-            'fileName' => $request->input('fileName'),
-            'phoneNumberId' => $request->input('phoneNumberId'),
-            'mimeType' => $request->input('mimeType'),
-            'message' => $request->input('message'),
-            'inspectionId' => $request->input('inspectionId')
-        ]);
+        
         if ($validator->fails()) {
             Log::error('Error en sendMediaInspection: ' . $validator->errors());
             return response()->json([

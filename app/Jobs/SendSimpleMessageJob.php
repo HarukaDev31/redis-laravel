@@ -15,21 +15,31 @@ class SendSimpleMessageJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     private $apiUrl;
-    
+
     /** @var string */
     private $message;
-    
+
     /** @var string */
     private $phoneNumberId;
 
     private $sleep;
+    private $fromNumberId = "consolidado";
 
-    public function __construct(string $message, string $phoneNumberId = "51912705923@c.us", int $sleep = 0)
-    {
+    public function __construct(
+        string $message,
+        string $phoneNumberId = "51912705923@c.us",
+        int $sleep = 0,
+        string $fromNumberId = "consolidado"
+    ) {
         $this->message = $message;
         $this->phoneNumberId = $phoneNumberId;
         $this->sleep = $sleep;
-        $this->apiUrl = env('COORDINATION_API_URL'); // Mover la llamada a env() aquí
+        $this->fromNumberId = $fromNumberId;
+        if ($this->fromNumberId === "consolidado") {
+            $this->apiUrl = env('COORDINATION_API_URL'); // Mover la llamada a env() aquí
+        } else {
+            $this->apiUrl = env('SELLS_API_URL'); // Mover la llamada a env() aquí
+        }
     }
 
     public function handle()
@@ -51,9 +61,8 @@ class SendSimpleMessageJob implements ShouldQueue
                 'phoneNumberId' => $this->phoneNumberId,
                 'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
             ]);
-            
+
             return $response->json();
-            
         } catch (\Exception $e) {
             Log::error('Error en SendSimpleMessageJob: ' . $e->getMessage(), [
                 'phoneNumberId' => $this->phoneNumberId
@@ -64,6 +73,5 @@ class SendSimpleMessageJob implements ShouldQueue
     public function tags()
     {
         return ['send-simple-message-job', 'phoneNumberId:' . $this->phoneNumberId];
-
     }
 }
