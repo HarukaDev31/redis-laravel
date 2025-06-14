@@ -11,7 +11,11 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use PDF; // Asegúrate de tener DomPDF instalado: composer require barryvdh/laravel-dompdf
+use Illuminate\Support\Facades\Mail;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Dompdf\Options;
+use Dompdf\Dompdf;
+
 /**
  * Summary of SendConstanciaCurso
  * Esta clase se encarga de generar y enviar una constancia de curso por WhatsApp.
@@ -34,7 +38,7 @@ class SendConstanciaCurso implements ShouldQueue
     private $phoneNumberId;
     private $pedidoCurso;
     private $table = 'pedido_curso';
-    
+
     public function __construct(
         string $phoneNumberId = "51912705923@c.us",
         $pedidoCurso = null
@@ -51,10 +55,10 @@ class SendConstanciaCurso implements ShouldQueue
     public function handle()
     {
         $pdfPath = null;
-        
+
         try {
             //check if img/fondo.png exists 
-            
+
             if (!$this->pedidoCurso) {
                 Log::error('El pedido de curso no está definido', [
                     'phoneNumberId' => $this->phoneNumberId
@@ -63,27 +67,35 @@ class SendConstanciaCurso implements ShouldQueue
                 return;
             }
 
-            
-
-          
-
-            // Obtener nombre del participante (ajusta según tu estructura de BD)
             $nombreParticipante = $this->pedidoCurso->No_Entidad ?? 'Participante';
-            $fechaEmision = now();
-
+            $fechaEmision = $this->pedidoCurso->Fe_Fin ?? now()->format('Y-m-d');
+            $emailParticipante = 'harukakasugano31@gmail.com';
             // Generar PDF desde el Blade
             $pdfPath = $this->generatePDF($nombreParticipante, $fechaEmision);
 
             // Enviar el PDF por WhatsApp
-            $response = $this->sendPDFToWhatsApp($pdfPath);
+            // $response = $this->sendPDFToWhatsApp($pdfPath);
+                    Mail::raw('🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.
 
+Equivalente a 16 horas académicas.
+Dictado por el docente Miguel Villegas.
+
+¡Gracias por tu participación! ', function ($message) use ($pdfPath, $emailParticipante) {
+                        $message->from('noreply@lae.one', 'Probusiness')
+                                ->to($emailParticipante)
+                                ->subject('Constancia de Curso-Probusiness')
+                                ->attach($pdfPath, [
+                                    'as' => basename($pdfPath),
+                                    'mime' => 'application/pdf'
+                                ]);
+                    });
             if ($response->successful()) {
                 // Actualizar estado a ENVIADO
                 DB::table($this->table)
                     ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
                     ->update([
                         'send_constancia' => 'SENDED',
-                        
+
                     ]);
 
                 Log::info('Constancia enviada exitosamente', [
@@ -95,16 +107,15 @@ class SendConstanciaCurso implements ShouldQueue
             } else {
                 throw new \Exception("Error al enviar constancia: " . $response->body());
             }
-
         } catch (\Exception $e) {
             Log::error('Error en SendConstanciaCurso: ' . $e->getMessage(), [
                 'phoneNumberId' => $this->phoneNumberId,
-                'pedidoCurso' =>json_encode($this->pedidoCurso),
+                'pedidoCurso' => json_encode($this->pedidoCurso),
                 'error' => $e->getTraceAsString()
             ]);
-            
-           
-            
+
+
+
             $this->fail($e);
         } finally {
             // Eliminar el archivo PDF temporal si existe
@@ -121,7 +132,7 @@ class SendConstanciaCurso implements ShouldQueue
             //encode base img
             $fondoImg = base64_encode(file_get_contents(public_path('img/fondo.png')));
             //convert fecha d/m/y to day de month de year
-            $fecha = date('d \d\e F \d\e Y', strtotime($fecha)); 
+            $fecha = date('d \d\e F \d\e Y', strtotime($fecha));
             //reemplazar mes en español
             $meses = [
                 'January' => 'Enero',
@@ -138,26 +149,49 @@ class SendConstanciaCurso implements ShouldQueue
                 'December' => 'Diciembre'
             ];
             $fecha = str_replace(array_keys($meses), array_values($meses), $fecha);
-            $html = view('constancia', [
+
+
+            // Crear el PDF
+            $pdf = PDF::loadView('constancia', [
                 'nombre' => $nombre,
                 'fecha' => $fecha,
                 'fondoImg' => $fondoImg
-            ])->render();
+            ]);
+            // $fontMetrics = $pdf->getFontMetrics();
+            // $fontMetrics->registerFont(
+            //     ['family' => 'lucide-handwriting', 'style' => 'normal', 'weight' => 'normal'],
+            //     storage_path('fonts/lucide-handwriting-regular.ttf')
+            // );
 
-            // Crear el PDF
-            $pdf = PDF::loadHTML($html);
-            
-            // Configurar el PDF tamaño carta horizontal
-            $pdf->setPaper('letter', 'landscape'); // Tamaño carta horizontal para constancias
-            //without margins
-            $pdf->setOptions([
-                'dpi' => 150,
-                'defaultFont' => 'sans-serif',
-                'isRemoteEnabled' => true, // Para cargar imágenes remotas
-                'isHtml5ParserEnabled' => true
+            // // Configurar el PDF tamaño carta horizontal
+            // $pdf->setPaper('letter', 'landscape');
+            //load fonts
+
+            $options = new Options();
+            $options->set('fontDir', storage_path('fonts/'));
+            $options->set('fontCache', storage_path('fonts/'));
+            $options->set('isHtml5ParserEnabled', true);
+            $options->set('isRemoteEnabled', false);
+            //set paper letter landscape
+            $options->set('defaultPaperSize', 'letter');
+            $options->set('defaultPaperOrientation', 'landscape');
+            $dompdf = new Dompdf($options);
+
+            // Registrar la fuente
+            $fontMetrics = $dompdf->getFontMetrics();
+            $fontMetrics->registerFont(
+                ['family' => 'lucide-handwriting', 'style' => 'normal', 'weight' => 'normal'],
+                storage_path('fonts/lucide-handwriting-regular.ttf')
+            );
+
+            $dompdf = PDF::loadView('constancia', [
+                'nombre' => $nombre,
+                'fecha' => $fecha,
+                'fondoImg' => $fondoImg
             ]);
 
-            // Generar nombre único para el archivo
+            // $dompdf->loadHtml(string: $html);
+            // $dompdf->setPaper('A4', 'portrait');
             $fileName = 'constancia_' . Str::slug($nombre) . '_' . time() . '.pdf';
             $pdfPath = storage_path('app/temp/' . $fileName);
 
@@ -165,9 +199,12 @@ class SendConstanciaCurso implements ShouldQueue
             if (!file_exists(dirname($pdfPath))) {
                 mkdir(dirname($pdfPath), 0755, true);
             }
-
+            //set dpi 150
+            $dompdf->set_option('dpi', 150);
+            $dompdf->setPaper('letter', 'landscape');
             // Guardar el PDF
-            $pdf->save($pdfPath);
+            $dompdf->render();
+            file_put_contents($pdfPath, $dompdf->output());
 
             Log::info('PDF generado exitosamente', [
                 'path' => $pdfPath,
@@ -176,7 +213,6 @@ class SendConstanciaCurso implements ShouldQueue
             ]);
 
             return $pdfPath;
-
         } catch (\Exception $e) {
             Log::error('Error generando PDF: ' . $e->getMessage());
             throw new \Exception('Error al generar la constancia PDF: ' . $e->getMessage());
@@ -187,9 +223,9 @@ class SendConstanciaCurso implements ShouldQueue
     {
         $fileName = basename($pdfPath);
         $mensaje = "🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.\n\n" .
-                  "Equivalente a 16 horas académicas.\n" .
-                  "Dictado por el docente Miguel Villegas.\n\n" .
-                  "¡Gracias por tu participación! 🎉";
+            "Equivalente a 16 horas académicas.\n" .
+            "Dictado por el docente Miguel Villegas.\n\n" .
+            "¡Gracias por tu participación! 🎉";
 
         return Http::timeout(30)
             ->asMultipart()
@@ -216,7 +252,7 @@ class SendConstanciaCurso implements ShouldQueue
     public function tags()
     {
         return [
-            'send-constancia-curso-job', 
+            'send-constancia-curso-job',
             'phoneNumberId:' . $this->phoneNumberId,
             'pedidoCurso:' . json_encode($this->pedidoCurso->No_Entidad) // Asegúrate de que esto no sea demasiado grande
         ];

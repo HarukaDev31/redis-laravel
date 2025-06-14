@@ -51,17 +51,18 @@ class CursoCommand extends Command
             Log::info('Fetching data from the database...');
             $campanas = DB::table($this->table_campana)
                 ->whereNull('Fe_Borrado')
-                ->where('Fe_Fin', '=', date('Y-m-d'))
+                ->where('Fe_Fin', '<=', date('Y-m-d'))
                 ->get();
             //get pedidos id_campana in campanas send_constancia is PENDING and tipo_curso is 1 and Nu_Estado is 2 and join with entidad and get Nu_Celular_Entidad
             $pedidos = DB::table($this->table_pedido_curso)
-                ->whereIn('ID_Campana', $campanas->pluck('ID_Campana'))
+                ->whereIn('pedido_curso.ID_Campana', $campanas->pluck('ID_Campana'))
                 ->where('pedido_curso.send_constancia', 'PENDING')
                 ->where('pedido_curso.tipo_curso', 1)
                 ->where('pedido_curso.Nu_Estado', 2)
+                ->join($this->table_campana, 'pedido_curso.ID_Campana', '=', 'campana_curso.ID_Campana')
                 ->join($this->table_entidad, 'pedido_curso.ID_Entidad', '=', 'entidad.ID_Entidad')
                 ->join($this->table_usuario, 'entidad.ID_Entidad', '=', 'usuario.ID_Entidad')
-                ->select('pedido_curso.ID_Pedido_Curso', 'entidad.Nu_Celular_Entidad', 'entidad.No_Entidad')
+                ->select('pedido_curso.ID_Pedido_Curso', 'entidad.Nu_Celular_Entidad', 'entidad.No_Entidad','entidad.Txt_Email_Entidad', 'Fe_Fin')
                 ->get();
             Log::info('Found ' . $pedidos->count() . ' pedidos to process.');
             Log::info('Processing each pedido...');

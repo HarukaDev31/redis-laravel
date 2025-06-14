@@ -3,6 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <meta http-equiv="Content-Type" content="charset=utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';">
+    <link href="https://fonts.cdnfonts.com/css/lucida-handwriting-std" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
@@ -16,7 +21,7 @@
             <p class="font-xlarge weight-bold letter-spacing-medium"> CONSTANCIA </p>
             <p class="font-medium weight-normal letter-spacing-small" style="margin: 0.1em 0;"> DE RECONOCIMIENTO </p>
             <p class="font-small weight-medium" style="margin-bottom: 0.1em;">Otorgado a </p>
-            <p class="family-lucida font-xsmall weight-medium" style="margin-left: 0.4em;margin-bottom: 0.6em;">
+            <p class="family-lucida font-xsmall" style="margin-left: 0.4em;margin-bottom: 0.6em;">
                 <span class="backgroud-gray ">{{$nombre}}</span>
             </p>
         </div>
@@ -121,7 +126,7 @@
     }
 
     .family-lucida {
-        font-family: 'cursive', 'Lucida Handwriting', 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
+        font-family: 'lucide-handwriting', 'Lucida Handwriting', 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
     }
 
     .font-underline {
