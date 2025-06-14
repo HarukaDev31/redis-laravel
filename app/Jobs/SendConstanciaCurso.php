@@ -69,12 +69,12 @@ class SendConstanciaCurso implements ShouldQueue
 
             $nombreParticipante = $this->pedidoCurso->No_Entidad ?? 'Participante';
             $fechaEmision = $this->pedidoCurso->Fe_Fin ?? now()->format('Y-m-d');
-            $emailParticipante = 'harukakasugano31@gmail.com';
+            $emailParticipante = $this->pedidoCurso->Txt_Email_Entidad ?? 'harukakasugano31@gmail.com';
             // Generar PDF desde el Blade
             $pdfPath = $this->generatePDF($nombreParticipante, $fechaEmision);
 
             // Enviar el PDF por WhatsApp
-            // $response = $this->sendPDFToWhatsApp($pdfPath);
+            $response = $this->sendPDFToWhatsApp($pdfPath);
                     Mail::raw('🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.
 
 Equivalente a 16 horas académicas.
