@@ -70,7 +70,7 @@ class SendMediaMessageJob implements ShouldQueue
             sleep($this->sleep);
         }
 
-        $response = Http::timeout(120) // Aumentar timeout a 2 minutos
+        $response = Http::timeout(30) // Aumentar timeout a 2 minutos
             ->asMultipart()
             ->post($this->apiUrl, [
                 [
