@@ -89,6 +89,7 @@ class SendSimpleMessageJob implements ShouldQueue
                 'statusCode' => $response->getStatusCode(),
                 'apiUrl' => $this->apiUrl
             ]);
+            $this->delete(); // Esto es clave para indicar finalización exitosa
 
             return json_decode($response->getBody(), true);
 
