@@ -9,21 +9,22 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Handler\CurlHandler;
 
 class SendSimpleMessageJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    // Constantes para timeouts
+    private const HTTP_TIMEOUT = 15; // segundos
+    private const CONNECT_TIMEOUT = 5; // segundos
+
     private $apiUrl;
-
-    /** @var string */
     private $message;
-
-    /** @var string */
     private $phoneNumberId;
-
     private $sleep;
-    private $fromNumberId = "consolidado";
+    private $fromNumberId;
 
     public function __construct(
         string $message,
@@ -35,43 +36,78 @@ class SendSimpleMessageJob implements ShouldQueue
         $this->phoneNumberId = $phoneNumberId;
         $this->sleep = $sleep;
         $this->fromNumberId = $fromNumberId;
-        if ($this->fromNumberId === "consolidado") {
-            $this->apiUrl = env('COORDINATION_API_URL'); // Mover la llamada a env() aquí
-        } else {
-            $this->apiUrl = env('SELLS_API_URL'); // Mover la llamada a env() aquí
-        }
+        $this->apiUrl = $this->resolveApiUrl();
+    }
+
+    private function resolveApiUrl(): string
+    {
+        return $this->fromNumberId === "consolidado" 
+            ? env('COORDINATION_API_URL')
+            : env('SELLS_API_URL');
     }
 
     public function handle()
     {
         try {
-            sleep($this->sleep); // Esperar el tiempo especificado antes de enviar el mensaje
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json'
-            ])->post($this->apiUrl, [
-                'mensaje' => $this->message,
-                'numero' => $this->phoneNumberId
+            // Espera inicial controlada
+            if ($this->sleep > 0) {
+                sleep(min($this->sleep, 60)); // Máximo 60 segundos de sleep
+            }
+
+            // Configurar cliente HTTP con timeout real
+            $handler = new CurlHandler();
+            $stack = HandlerStack::create($handler);
+            
+            $client = new \GuzzleHttp\Client([
+                'handler' => $stack,
+                'timeout' => self::HTTP_TIMEOUT,
+                'connect_timeout' => self::CONNECT_TIMEOUT,
+                'http_errors' => false,
+                'verify' => false // Solo si no usas SSL
             ]);
 
-            if ($response->failed()) {
-                throw new \Exception("Error al enviar mensaje simple: " . $response->body());
+            // Petición HTTP con timeout real
+            $response = $client->post($this->apiUrl, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
+                ],
+                'json' => [
+                    'mensaje' => $this->message,
+                    'numero' => $this->phoneNumberId
+                ]
+            ]);
+
+            // Verificar respuesta
+            if ($response->getStatusCode() != 200) {
+                throw new \Exception("Error al enviar mensaje simple: " . $response->getBody());
             }
 
             Log::info('Mensaje simple enviado', [
                 'phoneNumberId' => $this->phoneNumberId,
-                'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
+                'message' => substr($this->message, 0, 100) . (strlen($this->message) > 100 ? '...' : ''),
+                'statusCode' => $response->getStatusCode(),
+                'apiUrl' => $this->apiUrl
             ]);
 
-            return $response->json();
-        } catch (\Exception $e) {
+            return json_decode($response->getBody(), true);
+
+        } catch (\Throwable $e) {
             Log::error('Error en SendSimpleMessageJob: ' . $e->getMessage(), [
-                'phoneNumberId' => $this->phoneNumberId
+                'phoneNumberId' => $this->phoneNumberId,
+                'apiUrl' => $this->apiUrl,
+                'trace' => $e->getTraceAsString()
             ]);
             $this->fail($e);
         }
     }
+
     public function tags()
     {
-        return ['send-simple-message-job', 'phoneNumberId:' . $this->phoneNumberId];
+        return [
+            'send-simple-message-job', 
+            'phoneNumberId:' . $this->phoneNumberId,
+            'fromNumber:' . $this->fromNumberId
+        ];
     }
 }
