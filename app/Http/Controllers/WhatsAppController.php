@@ -26,8 +26,8 @@ class WhatsAppController extends Controller
             \App\Jobs\SendWelcomeMessageJob::dispatch(
                 $request->input('carga'),
                 $request->input('phoneNumberId'),
-                $request->input('sleep', 0) // Valor por defecto de 0 si no se proporciona,
-            );
+                0// Valor por defecto de 0 si no se proporciona,
+            )->delay(now()->addSeconds($request->input('sleep', 0)));
 
             return response()->json([
                 'status' => 'success',
@@ -68,8 +68,8 @@ class WhatsAppController extends Controller
                 $request->input('message'),
                 $tempPath,
                 $request->input('phoneNumberId'),
-                $request->input('sleep', 0) 
-            );
+                0
+            )->delay(now()->addSeconds($request->input('sleep', 0)));
 
             return response()->json([
                 'status' => 'success',
@@ -103,8 +103,8 @@ class WhatsAppController extends Controller
             \App\Jobs\SendSimpleMessageJob::dispatch(
                 $request->input('message'),
                 $request->input('phoneNumberId'),
-                $request->input('sleep', 0) 
-            );
+                0
+            )->delay(now()->addSeconds($request->input('sleep', 0)));
 
             return response()->json([
                 'status' => 'success',
@@ -137,9 +137,9 @@ class WhatsAppController extends Controller
             \App\Jobs\SendSimpleMessageJob::dispatch(
                 $request->input('message'),
                 $request->input('phoneNumberId'),
-                $request->input('sleep', 0),
-                'ventas' 
-            );
+                0,
+                'ventas'
+            )->delay(now()->addSeconds(0));
 
             return response()->json([
                 'status' => 'success',
@@ -182,8 +182,8 @@ class WhatsAppController extends Controller
                 $request->input('phoneNumberId'),
                 $request->input('mimeType'),
                 $request->input('message'),
-                $request->input('sleep', 0) 
-            );
+                0
+            )->delay(now()->addSeconds($request->input('sleep', 0)));
 
             return response()->json([
                 'status' => 'success',
@@ -227,9 +227,9 @@ class WhatsAppController extends Controller
                 $request->input('phoneNumberId'),
                 $request->input('mimeType'),
                 $request->input('message'),
-                $request->input('sleep', 0),
-                $request->input('inspectionId') 
-            );
+                0,
+                $request->input('inspectionId')
+            )->delay(now()->addSeconds(0));
 
             return response()->json([
                 'status' => 'success',
