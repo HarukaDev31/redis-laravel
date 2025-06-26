@@ -17,7 +17,7 @@ class SendSimpleMessageJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     // Constantes para timeouts
-    private const HTTP_TIMEOUT = 15; // segundos
+    private const HTTP_TIMEOUT = 30; // segundos
     private const CONNECT_TIMEOUT = 5; // segundos
 
     private $apiUrl;
