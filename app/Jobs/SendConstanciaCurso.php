@@ -75,20 +75,7 @@ class SendConstanciaCurso implements ShouldQueue
 
             // Enviar el PDF por WhatsApp
             $response = $this->sendPDFToWhatsApp($pdfPath);
-                    Mail::raw('🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.
-
-Equivalente a 16 horas académicas.
-Dictado por el docente Miguel Villegas.
-
-¡Gracias por tu participación! ', function ($message) use ($pdfPath, $emailParticipante) {
-                        $message->from('noreply@lae.one', 'Probusiness')
-                                ->to($emailParticipante)
-                                ->subject('Constancia de Curso-Probusiness')
-                                ->attach($pdfPath, [
-                                    'as' => basename($pdfPath),
-                                    'mime' => 'application/pdf'
-                                ]);
-                    });
+                
             if ($response->successful()) {
                 // Actualizar estado a ENVIADO
                 DB::table($this->table)
@@ -97,7 +84,20 @@ Dictado por el docente Miguel Villegas.
                         'send_constancia' => 'SENDED',
 
                     ]);
+                    Mail::raw('🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.
 
+                    Equivalente a 16 horas académicas.
+                    Dictado por el docente Miguel Villegas.
+                    
+                    ¡Gracias por tu participación! ', function ($message) use ($pdfPath, $emailParticipante) {
+                                            $message->from('noreply@lae.one', 'Probusiness')
+                                                    ->to($emailParticipante)
+                                                    ->subject('Constancia de Curso-Probusiness')
+                                                    ->attach($pdfPath, [
+                                                        'as' => basename($pdfPath),
+                                                        'mime' => 'application/pdf'
+                                                    ]);
+                                        });
                 Log::info('Constancia enviada exitosamente', [
                     'phoneNumberId' => $this->phoneNumberId,
                     'pedidoCurso' => json_encode($this->pedidoCurso),
