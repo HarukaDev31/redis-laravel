@@ -77,35 +77,37 @@ class SendConstanciaCurso implements ShouldQueue
             $response = $this->sendPDFToWhatsApp($pdfPath);
                 
             if ($response->successful()) {
+                // WhatsApp se envió exitosamente
+                Log::info('Constancia de WhatsApp enviada exitosamente', [
+                    'phoneNumberId' => $this->phoneNumberId,
+                    'pedidoCurso' => json_encode($this->pedidoCurso),
+                ]);
+                
                 // Actualizar estado a ENVIADO
                 DB::table($this->table)
                     ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
                     ->update([
                         'send_constancia' => 'SENDED',
-
                     ]);
-                    Mail::raw('🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.
-
-                    Equivalente a 16 horas académicas.
-                    Dictado por el docente Miguel Villegas.
-                    
-                    ¡Gracias por tu participación! ', function ($message) use ($pdfPath, $emailParticipante) {
-                                            $message->from('noreply@lae.one', 'Probusiness')
-                                                    ->to($emailParticipante)
-                                                    ->subject('Constancia de Curso-Probusiness')
-                                                    ->attach($pdfPath, [
-                                                        'as' => basename($pdfPath),
-                                                        'mime' => 'application/pdf'
-                                                    ]);
-                                        });
-                Log::info('Constancia enviada exitosamente', [
-                    'phoneNumberId' => $this->phoneNumberId,
-                    'pedidoCurso' => json_encode($this->pedidoCurso),
-                ]);
+                
+                // Enviar correo SOLO después de que WhatsApp se envíe exitosamente
+                $this->sendEmailWithErrorHandling($pdfPath, $emailParticipante);
 
                 return $response->json();
             } else {
-                throw new \Exception("Error al enviar constancia: " . $response->body());
+                Log::error('Error al enviar constancia por WhatsApp: ' . $response->body(), [
+                    'phoneNumberId' => $this->phoneNumberId,
+                    'pedidoCurso' => json_encode($this->pedidoCurso),
+                ]);
+                
+                // Marcar como enviado aunque falle WhatsApp
+                DB::table($this->table)
+                    ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
+                    ->update([
+                        'send_constancia' => 'SENDED',
+                    ]);
+                
+                return;
             }
         } catch (\Exception $e) {
             Log::error('Error en SendConstanciaCurso: ' . $e->getMessage(), [
@@ -247,6 +249,33 @@ class SendConstanciaCurso implements ShouldQueue
                     ]
                 ]
             ]);
+    }
+
+    private function sendEmailWithErrorHandling(string $pdfPath, string $emailParticipante)
+    {
+        try {
+            Mail::raw('🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.
+
+                    Equivalente a 16 horas académicas.
+                    Dictado por el docente Miguel Villegas.
+                    
+                    ¡Gracias por tu participación! ', function ($message) use ($pdfPath, $emailParticipante) {
+                                            $message->from('noreply@lae.one', 'Probusiness')
+                                                    ->to($emailParticipante)
+                                                    ->subject('Constancia de Curso-Probusiness')
+                                                    ->attach($pdfPath, [
+                                                        'as' => basename($pdfPath),
+                                                        'mime' => 'application/pdf'
+                                                    ]);
+                                        });
+            Log::info('Correo enviado exitosamente', ['email' => $emailParticipante]);
+        } catch (\Exception $e) {
+            Log::error('Error al enviar correo: ' . $e->getMessage(), [
+                'email' => $emailParticipante,
+                'error' => $e->getTraceAsString()
+            ]);
+            // NO lanzar excepción - el job debe continuar como exitoso
+        }
     }
 
     public function tags()
