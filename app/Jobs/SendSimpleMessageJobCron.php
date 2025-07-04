@@ -38,27 +38,27 @@ class SendSimpleMessageJobCron implements ShouldQueue
     public function handle()
     {
         try {
-
             $idCotizacion = DB::table($this->table)->where('id', $this->jobId)->value('id_cotizacion');
             $cotizacion = DB::table($this->tableCotizacion)->where('id', $idCotizacion);
+            
             if(!$cotizacion->exists()){
-                //delete job and log error 
                 Log::error('El id de cotizacion no existe en la tabla contenedor_consolidado_cotizacion', [
                     'phoneNumberId' => $this->phoneNumberId,
-                    'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
+                    'message' => substr($this->message, 0, 50) . '...'
                 ]);
+                // Marcar como ejecutado aunque falle
                 DB::table($this->table)->where('id', $this->jobId)->update([
                     'executed_at' => date('Y-m-d H:i:s'),
                     'status' => 'EXECUTED'
                 ]);
-                $this->fail(new \Exception('El id de cotizacion no existe en la tabla contenedor_consolidado_cotizacion'));
                 return;
             }
+            
             $estadoCotizador = $cotizacion->value('estado_cotizador');
             if ($estadoCotizador != 'PENDIENTE') {
                 Log::info('El estado del cotizador no es PENDIENTE, no se enviará el mensaje.', [
                     'phoneNumberId' => $this->phoneNumberId,
-                    'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
+                    'message' => substr($this->message, 0, 50) . '...'
                 ]);
                 DB::table($this->table)->where('id', $this->jobId)->update([
                     'executed_at' => date('Y-m-d H:i:s'),
@@ -66,6 +66,8 @@ class SendSimpleMessageJobCron implements ShouldQueue
                 ]);
                 return;
             }
+            
+            // Enviar mensaje de WhatsApp
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json'
             ])->post($this->apiUrl, [
@@ -74,33 +76,50 @@ class SendSimpleMessageJobCron implements ShouldQueue
             ]);
 
             if ($response->failed()) {
-                throw new \Exception("Error al enviar mensaje simple: " . $response->body());
+                Log::error('Error al enviar mensaje de WhatsApp: ' . $response->body(), [
+                    'phoneNumberId' => $this->phoneNumberId
+                ]);
+                // Marcar como ejecutado aunque falle WhatsApp
+                DB::table($this->table)->where('id', $this->jobId)->update([
+                    'executed_at' => date('Y-m-d H:i:s'),
+                    'status' => 'EXECUTED'
+                ]);
+                return;
             }
 
-            Log::info('Cron Ejecutado Mensaje simple', [
+            // WhatsApp se envió exitosamente
+            Log::info('Mensaje de WhatsApp enviado exitosamente', [
                 'phoneNumberId' => $this->phoneNumberId,
-                'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
-                
+                'message' => substr($this->message, 0, 50) . '...'
             ]);
+            
+            // Marcar job como ejecutado
             DB::table($this->table)->where('id', $this->jobId)->update([
                 'executed_at' => date('Y-m-d H:i:s'),
                 'status' => 'EXECUTED'
             ]);
-            $idCotizacion = DB::table($this->table)->where('id', $this->jobId)->value('id_cotizacion');
             
+            // Actualizar estado de cotización
+            $idCotizacion = DB::table($this->table)->where('id', $this->jobId)->value('id_cotizacion');
             DB::table($this->tableCotizacion)->where('id', $idCotizacion)
-            ->where('estado_cotizador', 'PENDIENTE')->
-            update([
-                'estado_cotizador' => 'CONTACTADO'
-            ]);
+                ->where('estado_cotizador', 'PENDIENTE')
+                ->update([
+                    'estado_cotizador' => 'CONTACTADO'
+                ]);
             
             return $response->json();
             
         } catch (\Exception $e) {
-            Log::error('Error en SendSimpleMessageJob: ' . $e->getMessage(), [
-                'phoneNumberId' => $this->phoneNumberId
+            Log::error('Error general en SendSimpleMessageJob: ' . $e->getMessage(), [
+                'phoneNumberId' => $this->phoneNumberId,
+                'error' => $e->getTraceAsString()
             ]);
-            $this->fail($e);
+            
+            // Marcar como ejecutado aunque haya error general
+            DB::table($this->table)->where('id', $this->jobId)->update([
+                'executed_at' => date('Y-m-d H:i:s'),
+                'status' => 'EXECUTED'
+            ]);
         }
     }
     public function tags()
