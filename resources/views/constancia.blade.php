@@ -25,9 +25,9 @@
                 <span class="backgroud-gray ">{{$nombre}}</span>
             </p>
         </div>
-        <p class="font-small weight-light">Por haber participado exitosamente en el <span class="weight-medium">TALLER VIRTUAL DE IMPORTACIÓN,</span></p>
-        <p class="font-small weight-light">equivalente a 16 horas académicas.</p>
-        <p class="font-small weight-light" style="margin-top: 0.4em;">Dictado por el docente Miguel Villegas, en la modalidad Online. </p>
+        <p class="font-small weight-light">Por haber participado exitosamente en el <span class="weight-medium">CURSO VIRTUAL DE IMPORTACIÓN,</span></p>
+        <p class="font-small weight-light">equivalente a 12 horas académicas.</p>
+        <p class="font-small weight-light" style="margin-top: 0.4em;">Dictado por Danitza Vega, Melisa Valle y Miguel Villegas, en la modalidad online. </p>
         <p class="font-small text-right" style="margin-top: 2.5em;margin-left:26em">Lima, {{$fecha}} </p>
     </div>
 </body>

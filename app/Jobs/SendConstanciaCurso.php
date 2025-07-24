@@ -225,8 +225,8 @@ class SendConstanciaCurso implements ShouldQueue
     {
         $fileName = basename($pdfPath);
         $mensaje = "🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.\n\n" .
-            "Equivalente a 16 horas académicas.\n" .
-            "Dictado por el docente Miguel Villegas.\n\n" .
+            "Equivalente a 12 horas académicas.\n" .
+            "Dictado por nuestros expertos en comercio internacional.\n\n" .
             "¡Gracias por tu participación! 🎉";
 
         return Http::timeout(30)
@@ -256,9 +256,9 @@ class SendConstanciaCurso implements ShouldQueue
         try {
             Mail::raw('🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.
 
-                    Equivalente a 16 horas académicas.
-                    Dictado por el docente Miguel Villegas.
-                    
+                    Equivalente a 12 horas académicas.
+                    Dictado por nuestros expertos en comercio internacional.
+
                     ¡Gracias por tu participación! ', function ($message) use ($pdfPath, $emailParticipante) {
                                             $message->from('noreply@lae.one', 'Probusiness')
                                                     ->to($emailParticipante)
