@@ -254,6 +254,11 @@ class SendConstanciaCurso implements ShouldQueue
     private function sendEmailWithErrorHandling(string $pdfPath, string $emailParticipante)
     {
         try {
+            DB::table($this->table)
+            ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
+            ->update([
+                'send_constancia' => 'SENDED',
+            ]);
             Mail::raw('🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.
 
                     Equivalente a 12 horas académicas.
