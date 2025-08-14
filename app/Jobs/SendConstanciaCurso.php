@@ -121,13 +121,14 @@ class SendConstanciaCurso implements ShouldQueue
 
             $this->fail($e);
         } finally {
-            // Eliminar el PDF temporal si se generó
+            // Guardar el PDF temporal si se generó
             if ($pdfPath && file_exists($pdfPath)) {
                 try {
+                    $fileName = basename($pdfPath);
                     DB::table($this->table)
                         ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
                         ->update([
-                            'url_constancia' => $pdfPath,
+                            'url_constancia' => 'storage/temp/' . $fileName,
                         ]);
                     Log::info('PDF guardado: ' . $pdfPath);
                 } catch (\Exception $e) {
