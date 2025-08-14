@@ -128,7 +128,7 @@ class SendConstanciaCurso implements ShouldQueue
                     DB::table($this->table)
                         ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
                         ->update([
-                            'url_constancia' => 'storage/temp/' . $fileName,
+                            'url_constancia' => 'storage/public/' . $fileName,
                         ]);
                     Log::info('PDF guardado: ' . $pdfPath);
                 } catch (\Exception $e) {
