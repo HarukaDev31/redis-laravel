@@ -1,20 +1,19 @@
 <?php
-
 namespace App\Jobs;
 
+use Barryvdh\DomPDF\Facade\Pdf;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Dompdf\Options;
-use Dompdf\Dompdf;
+use Illuminate\Support\Str;
 
 /**
  * Summary of SendConstanciaCurso
@@ -40,16 +39,16 @@ class SendConstanciaCurso implements ShouldQueue
     private $table = 'pedido_curso';
 
     public function __construct(
-        string $phoneNumberId = "51912705923@c.us",
+        string $phoneNumberId = "51931629529@c.us",
         $pedidoCurso = null
     ) {
         //check if number has @c.us
-        if (!str_ends_with($phoneNumberId, '@c.us')) {
+        if (! str_ends_with($phoneNumberId, '@c.us')) {
             $phoneNumberId .= '@c.us'; // Asegurar que el número tenga el formato correcto
         }
         $this->phoneNumberId = $phoneNumberId;
-        $this->pedidoCurso = $pedidoCurso;
-        $this->apiUrl = env('SELLS_API_URL');
+        $this->pedidoCurso   = $pedidoCurso;
+        $this->apiUrl        = env('SELLS_API_URL');
     }
 
     public function handle()
@@ -59,37 +58,41 @@ class SendConstanciaCurso implements ShouldQueue
         try {
             //check if img/fondo.png exists 
 
-            if (!$this->pedidoCurso) {
+            if (! $this->pedidoCurso) {
                 Log::error('El pedido de curso no está definido', [
-                    'phoneNumberId' => $this->phoneNumberId
+                    'phoneNumberId' => $this->phoneNumberId,
                 ]);
                 $this->fail(new \Exception('El pedido de curso no está definido'));
                 return;
             }
 
             $nombreParticipante = $this->pedidoCurso->No_Entidad ?? 'Participante';
-            $fechaEmision = $this->pedidoCurso->Fe_Fin ?? now()->format('Y-m-d');
-            $emailParticipante = $this->pedidoCurso->Txt_Email_Entidad ?? 'harukakasugano31@gmail.com';
+            $fechaEmision       = $this->pedidoCurso->Fe_Fin ?? now()->format('Y-m-d');
+            $emailParticipante  = $this->pedidoCurso->Txt_Email_Entidad ?? 'harukakasugano31@gmail.com';
             // Generar PDF desde el Blade
             $pdfPath = $this->generatePDF($nombreParticipante, $fechaEmision);
-
+            Log::info('PDF generado en la ruta: ' . $pdfPath, [
+                'phoneNumberId' => $this->phoneNumberId,
+                'pedidoCurso'   => json_encode($this->pedidoCurso),
+            ]);
+            return;
             // Enviar el PDF por WhatsApp
             $response = $this->sendPDFToWhatsApp($pdfPath);
-                
+
             if ($response->successful()) {
                 // WhatsApp se envió exitosamente
                 Log::info('Constancia de WhatsApp enviada exitosamente', [
                     'phoneNumberId' => $this->phoneNumberId,
-                    'pedidoCurso' => json_encode($this->pedidoCurso),
+                    'pedidoCurso'   => json_encode($this->pedidoCurso),
                 ]);
-                
+
                 // Actualizar estado a ENVIADO
                 DB::table($this->table)
                     ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
                     ->update([
                         'send_constancia' => 'SENDED',
                     ]);
-                
+
                 // Enviar correo SOLO después de que WhatsApp se envíe exitosamente
                 $this->sendEmailWithErrorHandling($pdfPath, $emailParticipante);
 
@@ -97,33 +100,41 @@ class SendConstanciaCurso implements ShouldQueue
             } else {
                 Log::error('Error al enviar constancia por WhatsApp: ' . $response->body(), [
                     'phoneNumberId' => $this->phoneNumberId,
-                    'pedidoCurso' => json_encode($this->pedidoCurso),
+                    'pedidoCurso'   => json_encode($this->pedidoCurso),
                 ]);
-                
+
                 // Marcar como enviado aunque falle WhatsApp
                 DB::table($this->table)
                     ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
                     ->update([
                         'send_constancia' => 'SENDED',
                     ]);
-                
+
                 return;
             }
         } catch (\Exception $e) {
             Log::error('Error en SendConstanciaCurso: ' . $e->getMessage(), [
                 'phoneNumberId' => $this->phoneNumberId,
-                'pedidoCurso' => json_encode($this->pedidoCurso),
-                'error' => $e->getTraceAsString()
+                'pedidoCurso'   => json_encode($this->pedidoCurso),
+                'error'         => $e->getTraceAsString(),
             ]);
-
-
 
             $this->fail($e);
         } finally {
-            // Eliminar el archivo PDF temporal si existe
+            // Eliminar el PDF temporal si se generó
             if ($pdfPath && file_exists($pdfPath)) {
-                unlink($pdfPath);
-                Log::info('Archivo PDF temporal eliminado', ['path' => $pdfPath]);
+                try {
+                    DB::table($this->table)
+                        ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
+                        ->update([
+                            'url_constancia' => $pdfPath,
+                        ]);
+                    Log::info('PDF guardado: ' . $pdfPath);
+                } catch (\Exception $e) {
+                    Log::error('Error al guardar el PDF: ' . $e->getMessage(), [
+                        'pdfPath' => $pdfPath,
+                    ]);
+                }
             }
         }
     }
@@ -137,27 +148,26 @@ class SendConstanciaCurso implements ShouldQueue
             $fecha = date('d \d\e F \d\e Y', strtotime($fecha));
             //reemplazar mes en español
             $meses = [
-                'January' => 'Enero',
-                'February' => 'Febrero',
-                'March' => 'Marzo',
-                'April' => 'Abril',
-                'May' => 'Mayo',
-                'June' => 'Junio',
-                'July' => 'Julio',
-                'August' => 'Agosto',
+                'January'   => 'Enero',
+                'February'  => 'Febrero',
+                'March'     => 'Marzo',
+                'April'     => 'Abril',
+                'May'       => 'Mayo',
+                'June'      => 'Junio',
+                'July'      => 'Julio',
+                'August'    => 'Agosto',
                 'September' => 'Septiembre',
-                'October' => 'Octubre',
-                'November' => 'Noviembre',
-                'December' => 'Diciembre'
+                'October'   => 'Octubre',
+                'November'  => 'Noviembre',
+                'December'  => 'Diciembre',
             ];
             $fecha = str_replace(array_keys($meses), array_values($meses), $fecha);
 
-
             // Crear el PDF
             $pdf = PDF::loadView('constancia', [
-                'nombre' => $nombre,
-                'fecha' => $fecha,
-                'fondoImg' => $fondoImg
+                'nombre'   => $nombre,
+                'fecha'    => $fecha,
+                'fondoImg' => $fondoImg,
             ]);
             // $fontMetrics = $pdf->getFontMetrics();
             // $fontMetrics->registerFont(
@@ -187,18 +197,18 @@ class SendConstanciaCurso implements ShouldQueue
             );
 
             $dompdf = PDF::loadView('constancia', [
-                'nombre' => $nombre,
-                'fecha' => $fecha,
-                'fondoImg' => $fondoImg
+                'nombre'   => $nombre,
+                'fecha'    => $fecha,
+                'fondoImg' => $fondoImg,
             ]);
 
             // $dompdf->loadHtml(string: $html);
             // $dompdf->setPaper('A4', 'portrait');
             $fileName = 'constancia_' . Str::slug($nombre) . '_' . time() . '.pdf';
-            $pdfPath = storage_path('app/temp/' . $fileName);
+            $pdfPath  = storage_path('app/temp/' . $fileName);
 
             // Asegurar que el directorio existe
-            if (!file_exists(dirname($pdfPath))) {
+            if (! file_exists(dirname($pdfPath))) {
                 mkdir(dirname($pdfPath), 0755, true);
             }
             //set dpi 150
@@ -209,9 +219,9 @@ class SendConstanciaCurso implements ShouldQueue
             file_put_contents($pdfPath, $dompdf->output());
 
             Log::info('PDF generado exitosamente', [
-                'path' => $pdfPath,
+                'path'   => $pdfPath,
                 'nombre' => $nombre,
-                'size' => filesize($pdfPath) . ' bytes'
+                'size'   => filesize($pdfPath) . ' bytes',
             ]);
 
             return $pdfPath;
@@ -224,7 +234,7 @@ class SendConstanciaCurso implements ShouldQueue
     private function sendPDFToWhatsApp(string $pdfPath)
     {
         $fileName = basename($pdfPath);
-        $mensaje = "🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.\n\n" .
+        $mensaje  = "🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.\n\n" .
             "Equivalente a 12 horas académicas.\n" .
             "Dictado por nuestros expertos en comercio internacional.\n\n" .
             "¡Gracias por tu participación! 🎉";
@@ -233,21 +243,21 @@ class SendConstanciaCurso implements ShouldQueue
             ->asMultipart()
             ->post($this->apiUrl, [
                 [
-                    'name' => 'numero',
-                    'contents' => $this->phoneNumberId
+                    'name'     => 'numero',
+                    'contents' => $this->phoneNumberId,
                 ],
                 [
-                    'name' => 'mensaje',
-                    'contents' => $mensaje
+                    'name'     => 'mensaje',
+                    'contents' => $mensaje,
                 ],
                 [
-                    'name' => 'archivo',
+                    'name'     => 'archivo',
                     'contents' => fopen($pdfPath, 'r'),
                     'filename' => $fileName,
-                    'headers' => [
-                        'Content-Type' => 'application/pdf'
-                    ]
-                ]
+                    'headers'  => [
+                        'Content-Type' => 'application/pdf',
+                    ],
+                ],
             ]);
     }
 
@@ -255,29 +265,29 @@ class SendConstanciaCurso implements ShouldQueue
     {
         try {
             DB::table($this->table)
-            ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
-            ->update([
-                'send_constancia' => 'SENDED',
-            ]);
+                ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
+                ->update([
+                    'send_constancia' => 'SENDED',
+                ]);
             Mail::raw('🎓 ¡Felicitaciones! Aquí tienes tu constancia del Taller Virtual de Importación.
 
                     Equivalente a 12 horas académicas.
                     Dictado por nuestros expertos en comercio internacional.
 
                     ¡Gracias por tu participación! ', function ($message) use ($pdfPath, $emailParticipante) {
-                                            $message->from('noreply@lae.one', 'Probusiness')
-                                                    ->to($emailParticipante)
-                                                    ->subject('Constancia de Curso-Probusiness')
-                                                    ->attach($pdfPath, [
-                                                        'as' => basename($pdfPath),
-                                                        'mime' => 'application/pdf'
-                                                    ]);
-                                        });
+                $message->from('noreply@lae.one', 'Probusiness')
+                    ->to($emailParticipante)
+                    ->subject('Constancia de Curso-Probusiness')
+                    ->attach($pdfPath, [
+                        'as'   => basename($pdfPath),
+                        'mime' => 'application/pdf',
+                    ]);
+            });
             Log::info('Correo enviado exitosamente', ['email' => $emailParticipante]);
         } catch (\Exception $e) {
             Log::error('Error al enviar correo: ' . $e->getMessage(), [
                 'email' => $emailParticipante,
-                'error' => $e->getTraceAsString()
+                'error' => $e->getTraceAsString(),
             ]);
             // NO lanzar excepción - el job debe continuar como exitoso
         }
@@ -288,7 +298,7 @@ class SendConstanciaCurso implements ShouldQueue
         return [
             'send-constancia-curso-job',
             'phoneNumberId:' . $this->phoneNumberId,
-            'pedidoCurso:' . json_encode($this->pedidoCurso->No_Entidad) // Asegúrate de que esto no sea demasiado grande
+            'pedidoCurso:' . json_encode($this->pedidoCurso->No_Entidad), // Asegúrate de que esto no sea demasiado grande
         ];
     }
 
@@ -296,8 +306,8 @@ class SendConstanciaCurso implements ShouldQueue
     {
         Log::error('Job SendConstanciaCurso falló completamente', [
             'phoneNumberId' => $this->phoneNumberId,
-            'pedidoCurso' => $this->pedidoCurso,
-            'error' => $exception->getMessage()
+            'pedidoCurso'   => $this->pedidoCurso,
+            'error'         => $exception->getMessage(),
         ]);
     }
 }
