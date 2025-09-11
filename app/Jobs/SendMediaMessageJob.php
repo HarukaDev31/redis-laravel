@@ -30,18 +30,23 @@ class SendMediaMessageJob implements ShouldQueue
 
     private $sleep = 0;
 
+    /** @var string|null */
+    private $originalFileName;
+
     public function __construct(
         string $filePath,
         string $phoneNumberId = "51912705923@c.us",
         ?string $mimeType = null,
         ?string $message = null,
-        int $sleep = 0
+        int $sleep = 0,
+        ?string $originalFileName = null
     ) {
         $this->filePath = $filePath;
         $this->phoneNumberId = $phoneNumberId;
         $this->mimeType = $mimeType;
         $this->message = $message;
         $this->sleep = $sleep;
+        $this->originalFileName = $originalFileName;
         $this->apiUrl = env('COORDINATION_API_URL'); // Mover la llamada a env() aquí
     }
 
@@ -55,9 +60,9 @@ class SendMediaMessageJob implements ShouldQueue
             $tempFile = tempnam(sys_get_temp_dir(), 'whatsapp_media_');
             file_put_contents($tempFile, file_get_contents($this->filePath));
             $this->filePath = $tempFile;
-            $fileName = basename(parse_url($this->filePath, PHP_URL_PATH));
+            $fileName = $this->originalFileName ?: basename(parse_url($this->filePath, PHP_URL_PATH));
         } else {
-            $fileName = basename($this->filePath);
+            $fileName = $this->originalFileName ?: basename($this->filePath);
         }
 
         // Determinar MIME type si no está especificado

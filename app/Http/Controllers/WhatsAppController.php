@@ -173,8 +173,12 @@ class WhatsAppController extends Controller
         }
 
         try {
-            // Guardar archivo temporal
-            $tempPath = tempnam(sys_get_temp_dir(), 'whatsapp_');
+            // Obtener extensión del archivo original
+            $fileName = $request->input('fileName');
+            $extension = pathinfo($fileName, PATHINFO_EXTENSION);
+            
+            // Guardar archivo temporal con extensión
+            $tempPath = tempnam(sys_get_temp_dir(), 'whatsapp_') . ($extension ? '.' . $extension : '');
             file_put_contents($tempPath, base64_decode($request->input('fileContent')));
 
             \App\Jobs\SendMediaMessageJob::dispatch(
@@ -182,7 +186,8 @@ class WhatsAppController extends Controller
                 $request->input('phoneNumberId'),
                 $request->input('mimeType'),
                 $request->input('message'),
-                0
+                0,
+                $fileName
             )->delay(now()->addSeconds($request->input('sleep', 0)));
 
             return response()->json([
@@ -218,8 +223,12 @@ class WhatsAppController extends Controller
         }
 
         try {
-            // Guardar archivo temporal
-            $tempPath = tempnam(sys_get_temp_dir(), 'whatsapp_');
+            // Obtener extensión del archivo original
+            $fileName = $request->input('fileName');
+            $extension = pathinfo($fileName, PATHINFO_EXTENSION);
+            
+            // Guardar archivo temporal con extensión
+            $tempPath = tempnam(sys_get_temp_dir(), 'whatsapp_') . ($extension ? '.' . $extension : '');
             file_put_contents($tempPath, base64_decode($request->input('fileContent')));
 
             \App\Jobs\SendMediaInspectionMessageJob::dispatch(
@@ -228,7 +237,8 @@ class WhatsAppController extends Controller
                 $request->input('mimeType'),
                 $request->input('message'),
                 0,
-                $request->input('inspectionId')
+                $request->input('inspectionId'),
+                $fileName
             )->delay(now()->addSeconds(0));
 
             return response()->json([
