@@ -87,6 +87,7 @@ class WhatsAppController extends Controller
 
     public function sendMessage(Request $request)
     {
+        Log::info('sendMessage', $request->all());
         $validator = Validator::make($request->all(), [
             'message' => 'required|string',
             'phoneNumberId' => 'required|string'
