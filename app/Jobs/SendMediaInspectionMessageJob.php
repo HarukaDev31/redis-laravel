@@ -68,14 +68,7 @@ class SendMediaInspectionMessageJob implements ShouldQueue
             }
             //find  id in table contenedor_consolidado_almacen_inspection
             $status = DB::table($this->table)->where('id', $this->inspectionId)->value('send_status');
-            if ($status == 'SENDED') {
-                Log::info('El estado de la inspección no es PENDING, no se enviará el mensaje.', [
-                    'phoneNumberId' => $this->phoneNumberId,
-                    'message' => substr($this->message, 0, 50) . '...' // Log solo parte del mensaje
-                ]);
-                $this->fail(new \Exception('El estado de la inspección no es PENDING'));
-                return;
-            }
+           
 
             if (filter_var($this->filePath, FILTER_VALIDATE_URL)) {
                 $tempFile = tempnam(sys_get_temp_dir(), 'whatsapp_media_');
