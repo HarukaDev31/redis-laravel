@@ -39,16 +39,23 @@ class SendConstanciaCurso implements ShouldQueue
     private $table = 'pedido_curso';
 
     public function __construct(
-        string $phoneNumberId = "51931629529@c.us",
+        string $phoneNumberId = "51912705923@c.us",
         $pedidoCurso = null
     ) {
+        //first trim number and remove +
+        $phoneNumberId = trim($phoneNumberId);
+        $phoneNumberId = str_replace('+', '', $phoneNumberId);
+        //later if number has low 9 digits, add 51
+        if (strlen($phoneNumberId) < 9) {
+            $phoneNumberId = '51' . $phoneNumberId;
+        }
         //check if number has @c.us
-        if (! str_ends_with($phoneNumberId, '@c.us')) {
+        if (!str_ends_with($phoneNumberId, '@c.us')) {
             $phoneNumberId .= '@c.us'; // Asegurar que el número tenga el formato correcto
         }
         $this->phoneNumberId = $phoneNumberId;
         $this->pedidoCurso   = $pedidoCurso;
-        $this->apiUrl        = env('SELLS_API_URL');
+        $this->apiUrl        = env('CURSO_API_URL');
     }
 
     public function handle()
@@ -75,7 +82,6 @@ class SendConstanciaCurso implements ShouldQueue
                 'phoneNumberId' => $this->phoneNumberId,
                 'pedidoCurso'   => json_encode($this->pedidoCurso),
             ]);
-            return;
             // Enviar el PDF por WhatsApp
             $response = $this->sendPDFToWhatsApp($pdfPath);
 
