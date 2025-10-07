@@ -212,12 +212,14 @@ class SendConstanciaCurso implements ShouldQueue
             // $dompdf->loadHtml(string: $html);
             // $dompdf->setPaper('A4', 'portrait');
             $fileName = 'constancia_' . Str::slug($nombre) . '_' . time() . '.pdf';
-            $pdfPath  = storage_path('app/temp/' . $fileName);
-
+            //SAVE IN STORAGE APP  PUBLIC INSTAD TO DOWNLOAD PDF
+            $pdfPath = storage_path('app/public/' . $fileName);
             // Asegurar que el directorio existe
             if (! file_exists(dirname($pdfPath))) {
                 mkdir(dirname($pdfPath), 0755, true);
             }
+            file_put_contents($pdfPath, $dompdf->output());
+
             //set dpi 150
             $dompdf->set_option('dpi', 150);
             $dompdf->setPaper('letter', 'landscape');
