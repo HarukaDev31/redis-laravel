@@ -155,41 +155,7 @@ class WhatsAppController extends Controller
             ], 500);
         }
     }
-    public function sendMessageCurso(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'message' => 'required|string',
-            'phoneNumberId' => 'required|string'
-        ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            \App\Jobs\SendSimpleMessageJob::dispatch(
-                $request->input('message'),
-                $request->input('phoneNumberId'),
-                0,
-                'curso'
-            )->delay(now()->addSeconds(0));
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Mensaje simple encolado'
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Error en sendMessage: ' . $e->getMessage());
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Error interno del servidor'
-            ], 500);
-        }
-    }
     public function sendMedia(Request $request)
     {
         $validator = Validator::make($request->all(), [
