@@ -41,9 +41,16 @@ class SendSimpleMessageJob implements ShouldQueue
 
     private function resolveApiUrl(): string
     {
-        return $this->fromNumberId === "consolidado" 
-            ? env('COORDINATION_API_URL')
-            : env('SELLS_API_URL');
+        if($this->fromNumberId === "consolidado"){
+            return env('COORDINATION_API_URL');
+        }
+        if($this->fromNumberId === "ventas"){
+            return env('SELLS_API_URL');
+        }
+        if($this->fromNumberId === "curso"){
+            return env('CURSO_API_URL');
+        }
+        return env('COORDINATION_API_URL');
     }
 
     public function handle()
