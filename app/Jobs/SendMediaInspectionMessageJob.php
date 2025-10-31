@@ -68,8 +68,6 @@ class SendMediaInspectionMessageJob implements ShouldQueue
             }
             //find  id in table contenedor_consolidado_almacen_inspection
             $status = DB::table($this->table)->where('id', $this->inspectionId)->value('send_status');
-           
-
             if (filter_var($this->filePath, FILTER_VALIDATE_URL)) {
                 $tempFile = tempnam(sys_get_temp_dir(), 'whatsapp_media_');
                 file_put_contents($tempFile, file_get_contents($this->filePath));
@@ -83,7 +81,6 @@ class SendMediaInspectionMessageJob implements ShouldQueue
             if (empty($this->mimeType)) {
                 $this->mimeType = $this->detectMimeType($this->filePath);
             }
-            //wait 3 seconds
             sleep($this->sleep); // Esperar el tiempo especificado antes de enviar el mensaje
             $response = Http::asMultipart()
                 ->post($this->apiUrl, [
@@ -108,7 +105,7 @@ class SendMediaInspectionMessageJob implements ShouldQueue
             if ($response->failed()) {
                 throw new \Exception("Error al enviar media: " . $response->body());
             }
-
+            Log::info('Response: ' . $response->body());
             Log::info('Media enviada', [
                 'phoneNumberId' => $this->phoneNumberId,
                 'file' => $fileName,

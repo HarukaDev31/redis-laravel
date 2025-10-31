@@ -222,7 +222,8 @@ class WhatsAppController extends Controller
                 $request->input('mimeType'),
                 $request->input('message'),
                 0,
-                $fileName
+                $fileName,
+                $request->input('fromNumberId')??'consolidado'
             )->delay(now()->addSeconds($request->input('sleep', 0)));
 
             return response()->json([

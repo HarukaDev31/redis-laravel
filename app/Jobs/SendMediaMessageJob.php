@@ -32,6 +32,7 @@ class SendMediaMessageJob implements ShouldQueue
 
     /** @var string|null */
     private $originalFileName;
+    private $fromNumberId;
 
     public function __construct(
         string $filePath,
@@ -39,7 +40,8 @@ class SendMediaMessageJob implements ShouldQueue
         ?string $mimeType = null,
         ?string $message = null,
         int $sleep = 0,
-        ?string $originalFileName = null
+        ?string $originalFileName = null,
+        string $fromNumberId = "consolidado"
     ) {
         $this->filePath = $filePath;
         $this->phoneNumberId = $phoneNumberId;
@@ -47,9 +49,22 @@ class SendMediaMessageJob implements ShouldQueue
         $this->message = $message;
         $this->sleep = $sleep;
         $this->originalFileName = $originalFileName;
-        $this->apiUrl = env('COORDINATION_API_URL'); // Mover la llamada a env() aquí
+        $this->fromNumberId = $fromNumberId;
+        $this->apiUrl = $this->resolveApiUrl(); // Mover la llamada a env() aquí
     }
-
+    private function resolveApiUrl(): string
+    {
+        if($this->fromNumberId === "consolidado"){
+            return env('COORDINATION_API_URL');
+        }
+        if($this->fromNumberId === "ventas"){
+            return env('SELLS_API_URL');
+        }
+        if($this->fromNumberId === "curso"){
+            return env('CURSO_API_URL');
+        }
+        return env('COORDINATION_API_URL');
+    }
   public function handle()
 {
     $tempFile = null;
