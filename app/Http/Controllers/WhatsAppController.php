@@ -223,7 +223,7 @@ class WhatsAppController extends Controller
                 $request->input('message'),
                 0,
                 $fileName,
-                $request->input('fromNumberId')??'consolidado'
+                $request->input('fromNumber')??'consolidado'
             )->delay(now()->addSeconds($request->input('sleep', 0)));
 
             return response()->json([
