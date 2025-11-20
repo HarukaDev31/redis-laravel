@@ -37,7 +37,7 @@ class SendDataItemJobV2 implements ShouldQueue
         $this->filePath = $filePath;
         $this->phoneNumberId = $phoneNumberId;
         $this->sleep = $sleep;
-        $this->apiUrl = env('COORDINATION_API_URL_V2');
+        $this->apiUrl = env('WHATSAPP_SERVICE_API_URL').'sendMedia/COORDINATION';
     }
 
     public function handle()
