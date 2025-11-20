@@ -248,7 +248,7 @@ class SendConstanciaCurso implements ShouldQueue
             "Dictado por nuestros expertos en comercio internacional.\n\n" .
             "¡Gracias por tu participación! 🎉";
 
-        return Http::timeout(30)
+        return Http::timeout(50)
             ->asMultipart()
             ->post($this->apiUrl, [
                 [
@@ -265,6 +265,7 @@ class SendConstanciaCurso implements ShouldQueue
                     'filename' => $fileName,
                     'headers'  => [
                         'Content-Type' => 'application/pdf',
+                        'apikey' => env('API_KEY_V2'),
                     ],
                 ],
             ]);
