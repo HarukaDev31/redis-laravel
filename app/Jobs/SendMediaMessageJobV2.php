@@ -137,7 +137,13 @@ class SendMediaMessageJobV2 implements ShouldQueue
         Log::info('Media enviada', [
             'phoneNumberId' => $this->phoneNumberId,
             'file' => $fileName,
-            'type' => $this->mimeType
+            'type' => $this->mimeType,
+            'message' => $this->message,
+            'filePath' => $this->filePath,
+            'sleep' => $this->sleep,
+            'originalFileName' => $this->originalFileName,
+            'fromNumberId' => $this->fromNumberId,
+            'apiUrl' => $this->apiUrl
         ]);
 
         return json_decode($response->getBody()->getContents(), true);

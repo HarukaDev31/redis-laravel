@@ -276,6 +276,7 @@ class WhatsAppController extends Controller
     }
     public function sendMediaV2(Request $request)
     {
+        Log::info('sendMediaV2', $request->all());
         $validator = Validator::make($request->all(), [
             'fileContent' => 'required|string',
             'fileName' => 'required|string',
