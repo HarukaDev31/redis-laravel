@@ -63,7 +63,13 @@ class SendDataItemJobV2 implements ShouldQueue
             // Determinar MIME type
             $mimeType = $this->detectMimeType($this->filePath);
             $mediaType = $this->getMediaType($mimeType);
-
+            Log::info('mimeType: ' . $mimeType);
+            Log::info('mediaType: ' . $mediaType);
+            Log::info('apiUrl: ' . $this->apiUrl);
+            Log::info('phoneNumberId: ' . $this->phoneNumberId);
+            Log::info('message: ' . $this->message);
+            Log::info('filePath: ' . $this->filePath);
+            Log::info('sleep: ' . $this->sleep);
             // Configurar cliente HTTP con timeout real
             $stack = HandlerStack::create(new CurlHandler());
             
