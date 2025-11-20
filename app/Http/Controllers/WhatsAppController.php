@@ -374,4 +374,205 @@ class WhatsAppController extends Controller
             ], 500);
         }
     }
+
+    public function sendMediaInspectionV2(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'fileContent' => 'required|string',
+            'fileName' => 'required|string',
+            'phoneNumberId' => 'required|string',
+            'mimeType' => 'nullable|string',
+            'message' => 'nullable|string',
+            'inspectionId' => 'required|integer'
+        ]);
+        
+        if ($validator->fails()) {
+            Log::error('Error en sendMediaInspectionV2: ' . $validator->errors());
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Obtener extensión del archivo original
+            $fileName = $request->input('fileName');
+            $extension = pathinfo($fileName, PATHINFO_EXTENSION);
+            
+            // Guardar archivo temporal con extensión
+            $tempPath = tempnam(sys_get_temp_dir(), 'whatsapp_') . ($extension ? '.' . $extension : '');
+            file_put_contents($tempPath, base64_decode($request->input('fileContent')));
+
+            \App\Jobs\SendMediaInspectionMessageJobV2::dispatch(
+                $tempPath,
+                $request->input('phoneNumberId'),
+                $request->input('mimeType'),
+                $request->input('message'),
+                0,
+                $request->input('inspectionId'),
+                $fileName
+            )->delay(now()->addSeconds(0));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Media Inspeccion V2 encolada'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en sendMediaInspeccionV2: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
+
+    public function sendWelcomeV2(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'carga' => 'required|string',
+            'phoneNumberId' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            \App\Jobs\SendWelcomeMessageJobV2::dispatch(
+                $request->input('carga'),
+                $request->input('phoneNumberId'),
+                0
+            )->delay(now()->addSeconds($request->input('sleep', 0)));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Mensaje de bienvenida V2 encolado'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en sendWelcomeV2: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
+
+    public function sendDataItemV2(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'message' => 'required|string',
+            'fileContent' => 'required|string',
+            'fileName' => 'required|string',
+            'phoneNumberId' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Guardar archivo temporal
+            $tempPath = tempnam(sys_get_temp_dir(), 'whatsapp_');
+            file_put_contents($tempPath, base64_decode($request->input('fileContent')));
+
+            \App\Jobs\SendDataItemJobV2::dispatch(
+                $request->input('message'),
+                $tempPath,
+                $request->input('phoneNumberId'),
+                0
+            )->delay(now()->addSeconds($request->input('sleep', 0)));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Datos con archivo V2 encolados'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en sendDataItemV2: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
+
+    public function sendMessageVentasV2(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'message' => 'required|string',
+            'phoneNumberId' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            \App\Jobs\SendSimpleMessageJobV2::dispatch(
+                $request->input('message'),
+                $request->input('phoneNumberId'),
+                0,
+                'ventas'
+            )->delay(now()->addSeconds(0));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Mensaje ventas V2 encolado'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en sendMessageVentasV2: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
+
+    public function sendMessageCursoV2(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'message' => 'required|string',
+            'phoneNumberId' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            \App\Jobs\SendSimpleMessageJobV2::dispatch(
+                $request->input('message'),
+                $request->input('phoneNumberId'),
+                0,
+                'curso'
+            )->delay(now()->addSeconds(0));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Mensaje curso V2 encolado'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en sendMessageCursoV2: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
 }
