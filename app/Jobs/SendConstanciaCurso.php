@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Handler\CurlHandler;
 
 /**
  * Summary of SendConstanciaCurso
@@ -32,6 +35,9 @@ use Illuminate\Support\Str;
 class SendConstanciaCurso implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    private const HTTP_TIMEOUT = 60; // segundos
+    private const CONNECT_TIMEOUT = 5; // segundos
 
     private $apiUrl;
     private $phoneNumberId;
@@ -55,7 +61,7 @@ class SendConstanciaCurso implements ShouldQueue
         }
         $this->phoneNumberId = $phoneNumberId;
         $this->pedidoCurso   = $pedidoCurso;
-        $this->apiUrl        = env('WHATSAPP_SERVICE_API_URL').'sendMedia/COURSE';
+        $this->apiUrl = env('WHATSAPP_SERVICE_API_URL').'sendMedia/COURSE';
     }
 
     public function handle()
@@ -85,7 +91,7 @@ class SendConstanciaCurso implements ShouldQueue
             // Enviar el PDF por WhatsApp
             $response = $this->sendPDFToWhatsApp($pdfPath);
 
-            if ($response->successful()) {
+            if ($response->getStatusCode() < 400) {
                 // WhatsApp se envió exitosamente
                 Log::info('Constancia de WhatsApp enviada exitosamente', [
                     'phoneNumberId' => $this->phoneNumberId,
@@ -102,9 +108,9 @@ class SendConstanciaCurso implements ShouldQueue
                 // Enviar correo SOLO después de que WhatsApp se envíe exitosamente
                 $this->sendEmailWithErrorHandling($pdfPath, $emailParticipante);
 
-                return $response->json();
+                return json_decode($response->getBody()->getContents(), true);
             } else {
-                Log::error('Error al enviar constancia por WhatsApp: ' . $response->body(), [
+                Log::error('Error al enviar constancia por WhatsApp: ' . $response->getBody()->getContents(), [
                     'phoneNumberId' => $this->phoneNumberId,
                     'pedidoCurso'   => json_encode($this->pedidoCurso),
                 ]);
@@ -248,27 +254,36 @@ class SendConstanciaCurso implements ShouldQueue
             "Dictado por nuestros expertos en comercio internacional.\n\n" .
             "¡Gracias por tu participación! 🎉";
 
-        return Http::timeout(50)
-            ->asMultipart()
-            ->post($this->apiUrl, [
-                [
-                    'name'     => 'numero',
-                    'contents' => $this->phoneNumberId,
-                ],
-                [
-                    'name'     => 'mensaje',
-                    'contents' => $mensaje,
-                ],
-                [
-                    'name'     => 'archivo',
-                    'contents' => fopen($pdfPath, 'r'),
-                    'filename' => $fileName,
-                    'headers'  => [
-                        'Content-Type' => 'application/pdf',
-                        'apikey' => env('API_KEY_V2'),
-                    ],
-                ],
-            ]);
+        // Configurar cliente HTTP con timeout real
+        $stack = HandlerStack::create(new CurlHandler());
+        
+        // Crear cliente Guzzle
+        $client = new Client([
+            'handler' => $stack,
+            'timeout' => self::HTTP_TIMEOUT,
+            'connect_timeout' => self::CONNECT_TIMEOUT,
+            'http_errors' => false,
+            'verify' => false
+        ]);
+
+        // Preparar payload según el formato V2 - siempre usar base64
+        $payload = [
+            'number' => $this->phoneNumberId,
+            'mediatype' => 'document',
+            'mimetype' => 'application/pdf',
+            'caption' => $mensaje,
+            'media' => base64_encode(file_get_contents($pdfPath)),
+            'fileName' => $fileName
+        ];
+
+        return $client->post($this->apiUrl, [
+            'json' => $payload,
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+                'apikey' => env('API_KEY_V2'),
+            ]
+        ]);
     }
 
     private function sendEmailWithErrorHandling(string $pdfPath, string $emailParticipante)
