@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Handler\CurlHandler;
 
 class SendMediaInspectionMessageJobV2 implements ShouldQueue
 {
@@ -99,6 +101,9 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
             // Determinar mediatype basado en mimeType
             $mediaType = $this->getMediaType($this->mimeType);
 
+            // Configurar cliente HTTP con timeout real
+            $stack = HandlerStack::create(new CurlHandler());
+            
             // Crear cliente Guzzle
             $client = new \GuzzleHttp\Client([
                 'handler' => $stack,

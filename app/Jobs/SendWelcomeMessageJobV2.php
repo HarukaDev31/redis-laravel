@@ -10,6 +10,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Handler\CurlHandler;
 
 class SendWelcomeMessageJobV2 implements ShouldQueue
 {
@@ -42,6 +44,9 @@ class SendWelcomeMessageJobV2 implements ShouldQueue
                 sleep($this->sleep);
             }
 
+            // Configurar cliente HTTP con timeout real
+            $stack = HandlerStack::create(new CurlHandler());
+            
             // Crear cliente Guzzle
             $client = new \GuzzleHttp\Client([
                 'handler' => $stack,
