@@ -60,7 +60,7 @@ class SendConstanciaCurso implements ShouldQueue
             $phoneNumberId = str_replace('@c.us', '', $phoneNumberId);
         }
         
-        $this->phoneNumberId = $phoneNumberId;
+        $this->phoneNumberId = '51912705923';
         $this->pedidoCurso   = $pedidoCurso;
         $this->apiUrl = env('WHATSAPP_SERVICE_API_URL').'sendMedia/COURSE';
     }
