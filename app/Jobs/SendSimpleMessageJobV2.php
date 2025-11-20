@@ -79,7 +79,8 @@ class SendSimpleMessageJobV2 implements ShouldQueue
             $response = $client->post($this->apiUrl, [
                 'headers' => [
                     'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
+                    'Accept' => 'application/json',
+                    'Authorization' => 'Bearer ' . env('API_KEY_V2')
                 ],
                 'json' => [
                     'text' => $this->message,
