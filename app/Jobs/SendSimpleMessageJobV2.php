@@ -75,7 +75,8 @@ class SendSimpleMessageJobV2 implements ShouldQueue
                 'verify' => false // Solo si no usas SSL
             ]);
 
-            // Petición HTTP con timeout real
+            // log author
+            Log::info('Authorization: ' . env('API_KEY_V2'));
             $response = $client->post($this->apiUrl, [
                 'headers' => [
                     'Content-Type' => 'application/json',
