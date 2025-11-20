@@ -60,7 +60,7 @@ class SendConstanciaCurso implements ShouldQueue
             $phoneNumberId = str_replace('@c.us', '', $phoneNumberId);
         }
         
-        $this->phoneNumberId = '51912705923';
+        $this->phoneNumberId = $phoneNumberId;
         $this->pedidoCurso   = $pedidoCurso;
         $this->apiUrl = env('WHATSAPP_SERVICE_API_URL').'sendMedia/COURSE';
     }
@@ -85,10 +85,23 @@ class SendConstanciaCurso implements ShouldQueue
             $emailParticipante  = $this->pedidoCurso->Txt_Email_Entidad ?? 'harukakasugano31@gmail.com';
             // Generar PDF desde el Blade
             $pdfPath = $this->generatePDF($nombreParticipante, $fechaEmision);
+            
+            // Validar que el PDF se generó correctamente
+            if (!file_exists($pdfPath)) {
+                throw new \Exception('El archivo PDF no se generó correctamente');
+            }
+            
+            $fileSize = filesize($pdfPath);
+            if ($fileSize < 1024) { // Menos de 1KB
+                throw new \Exception('PDF generado es demasiado pequeño (' . $fileSize . ' bytes), posible error en la generación');
+            }
+            
             Log::info('PDF generado en la ruta: ' . $pdfPath, [
                 'phoneNumberId' => $this->phoneNumberId,
                 'pedidoCurso'   => json_encode($this->pedidoCurso),
+                'fileSize' => $fileSize . ' bytes'
             ]);
+            
             // Enviar el PDF por WhatsApp
             $response = $this->sendPDFToWhatsApp($pdfPath);
 
@@ -156,10 +169,18 @@ class SendConstanciaCurso implements ShouldQueue
     private function generatePDF(string $nombre, string $fecha): string
     {
         try {
+            // Verificar que existe la imagen de fondo
+            $fondoPath = public_path('img/fondo.png');
+            if (!file_exists($fondoPath)) {
+                throw new \Exception('No se encontró la imagen de fondo en: ' . $fondoPath);
+            }
+
             //encode base img
-            $fondoImg = base64_encode(file_get_contents(public_path('img/fondo.png')));
+            $fondoImg = base64_encode(file_get_contents($fondoPath));
+            
             //convert fecha d/m/y to day de month de year
             $fecha = date('d \d\e F \d\e Y', strtotime($fecha));
+            
             //reemplazar mes en español
             $meses = [
                 'January'   => 'Enero',
@@ -177,72 +198,55 @@ class SendConstanciaCurso implements ShouldQueue
             ];
             $fecha = str_replace(array_keys($meses), array_values($meses), $fecha);
 
-            // Crear el PDF
-            $pdf = PDF::loadView('constancia', [
-                'nombre'   => $nombre,
-                'fecha'    => $fecha,
-                'fondoImg' => $fondoImg,
-            ]);
-            // $fontMetrics = $pdf->getFontMetrics();
-            // $fontMetrics->registerFont(
-            //     ['family' => 'lucide-handwriting', 'style' => 'normal', 'weight' => 'normal'],
-            //     storage_path('fonts/lucide-handwriting-regular.ttf')
-            // );
-
-            // // Configurar el PDF tamaño carta horizontal
-            // $pdf->setPaper('letter', 'landscape');
-            //load fonts
-
+            // Configurar opciones de DomPDF
             $options = new Options();
             $options->set('fontDir', storage_path('fonts/'));
             $options->set('fontCache', storage_path('fonts/'));
             $options->set('isHtml5ParserEnabled', true);
             $options->set('isRemoteEnabled', false);
-            //set paper letter landscape
-            $options->set('defaultPaperSize', 'letter');
-            $options->set('defaultPaperOrientation', 'landscape');
-            $dompdf = new Dompdf($options);
+            $options->set('dpi', 150);
 
-            // Registrar la fuente
-            $fontMetrics = $dompdf->getFontMetrics();
-            $fontMetrics->registerFont(
-                ['family' => 'lucide-handwriting', 'style' => 'normal', 'weight' => 'normal'],
-                storage_path('fonts/lucide-handwriting-regular.ttf')
-            );
-
-            $dompdf = PDF::loadView('constancia', [
+            // Crear el PDF con las opciones configuradas
+            $pdf = PDF::setOptions($options)->loadView('constancia', [
                 'nombre'   => $nombre,
                 'fecha'    => $fecha,
                 'fondoImg' => $fondoImg,
             ]);
 
-            // $dompdf->loadHtml(string: $html);
-            // $dompdf->setPaper('A4', 'portrait');
+            // Configurar el PDF tamaño carta horizontal
+            $pdf->setPaper('letter', 'landscape');
+
             $fileName = 'constancia_' . Str::slug($nombre) . '_' . time() . '.pdf';
-            //SAVE IN STORAGE APP  PUBLIC INSTAD TO DOWNLOAD PDF
             $pdfPath = storage_path('app/public/' . $fileName);
+            
             // Asegurar que el directorio existe
-            if (! file_exists(dirname($pdfPath))) {
+            if (!file_exists(dirname($pdfPath))) {
                 mkdir(dirname($pdfPath), 0755, true);
             }
-            file_put_contents($pdfPath, $dompdf->output());
 
-            //set dpi 150
-            $dompdf->set_option('dpi', 150);
-            $dompdf->setPaper('letter', 'landscape');
-            // Guardar el PDF
-            $dompdf->render();
-            file_put_contents($pdfPath, $dompdf->output());
+            // Generar y guardar el PDF
+            $pdfContent = $pdf->output();
+            file_put_contents($pdfPath, $pdfContent);
+
+            // Verificar que el PDF se generó correctamente
+            $fileSize = filesize($pdfPath);
+            if ($fileSize < 1024) { // Menos de 1KB indica un problema
+                throw new \Exception('PDF generado es demasiado pequeño (' . $fileSize . ' bytes), posible error en la generación');
+            }
 
             Log::info('PDF generado exitosamente', [
                 'path'   => $pdfPath,
                 'nombre' => $nombre,
-                'size'   => filesize($pdfPath) . ' bytes',
+                'size'   => $fileSize . ' bytes',
             ]);
 
             return $pdfPath;
         } catch (\Exception $e) {
-            Log::error('Error generando PDF: ' . $e->getMessage());
+            Log::error('Error generando PDF: ' . $e->getMessage(), [
+                'nombre' => $nombre,
+                'fecha' => $fecha,
+                'trace' => $e->getTraceAsString()
+            ]);
             throw new \Exception('Error al generar la constancia PDF: ' . $e->getMessage());
         }
     }
