@@ -198,13 +198,14 @@ class SendConstanciaCurso implements ShouldQueue
             ];
             $fecha = str_replace(array_keys($meses), array_values($meses), $fecha);
 
-            // Configurar opciones de DomPDF
-            $options = new Options();
-            $options->set('fontDir', storage_path('fonts/'));
-            $options->set('fontCache', storage_path('fonts/'));
-            $options->set('isHtml5ParserEnabled', true);
-            $options->set('isRemoteEnabled', false);
-            $options->set('dpi', 150);
+            // Configurar opciones de DomPDF como array
+            $options = [
+                'fontDir' => storage_path('fonts/'),
+                'fontCache' => storage_path('fonts/'),
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => false,
+                'dpi' => 150,
+            ];
 
             // Crear el PDF con las opciones configuradas
             $pdf = PDF::setOptions($options)->loadView('constancia', [
