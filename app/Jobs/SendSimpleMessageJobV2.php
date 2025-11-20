@@ -42,15 +42,15 @@ class SendSimpleMessageJobV2 implements ShouldQueue
     private function resolveApiUrl(): string
     {
         if($this->fromNumberId === "consolidado"){
-            return env('COORDINATION_API_URL_V2');
+            return env('WHATSAPP_SERVICE_API_URL').'sendMessage/COORDINATION';
         }
         if($this->fromNumberId === "ventas"){
-            return env('SELLS_API_URL_V2');
+            return env('WHATSAPP_SERVICE_API_URL').'sendMessage/SELLS';
         }
         if($this->fromNumberId === "curso"){
-            return env('CURSO_API_URL_V2');
+            return env('WHATSAPP_SERVICE_API_URL').'sendMessage/COURSE';
         }
-        return env('COORDINATION_API_URL_V2');
+        return env('WHATSAPP_SERVICE_API_URL').'sendMessage/COORDINATION';
     }
 
     public function handle()

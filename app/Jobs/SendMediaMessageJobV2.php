@@ -59,15 +59,15 @@ class SendMediaMessageJobV2 implements ShouldQueue
     private function resolveApiUrl(): string
     {
         if($this->fromNumberId === "consolidado"){
-            return env('COORDINATION_API_URL_V2');
+            return env('WHATSAPP_SERVICE_API_URL').'sendMedia/COORDINATION';
         }
         if($this->fromNumberId === "ventas"){
-            return env('SELLS_API_URL_V2');
+            return env('WHATSAPP_SERVICE_API_URL').'sendMedia/SELLS';
         }
         if($this->fromNumberId === "curso"){
-            return env('CURSO_API_URL_V2');
+            return env('WHATSAPP_SERVICE_API_URL').'sendMedia/COURSE';
         }
-        return env('COORDINATION_API_URL_V2');
+        return env('WHATSAPP_SERVICE_API_URL').'sendMedia/COORDINATION';
     }
   public function handle()
 {
@@ -103,7 +103,6 @@ class SendMediaMessageJobV2 implements ShouldQueue
         // Preparar payload según el formato especificado - usar base64 directo
         $payload = [
             'number' => $this->phoneNumberId,
-            'text' => $this->message ?? '',
             'mediatype' => $mediaType,
             'mimetype' => $this->mimeType,
             'caption' => $this->message ?? '',

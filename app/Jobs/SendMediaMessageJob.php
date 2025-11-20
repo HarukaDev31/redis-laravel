@@ -55,15 +55,15 @@ class SendMediaMessageJob implements ShouldQueue
     private function resolveApiUrl(): string
     {
         if($this->fromNumberId === "consolidado"){
-            return env('COORDINATION_API_URL');
+            return env('WHATSAPP_SERVICE_API_URL').'sendMedia/COORDINATION';
         }
         if($this->fromNumberId === "ventas"){
-            return env('SELLS_API_URL');
+            return env('WHATSAPP_SERVICE_API_URL').'sendMedia/SELLS';
         }
         if($this->fromNumberId === "curso"){
-            return env('CURSO_API_URL');
+            return env('WHATSAPP_SERVICE_API_URL').'sendMedia/COURSE';
         }
-        return env('COORDINATION_API_URL');
+        return env('WHATSAPP_SERVICE_API_URL').'sendMedia/COORDINATION';
     }
   public function handle()
 {

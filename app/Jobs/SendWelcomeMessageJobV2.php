@@ -33,7 +33,7 @@ class SendWelcomeMessageJobV2 implements ShouldQueue
         $this->carga = $carga;
         $this->phoneNumberId = $phoneNumberId;
         $this->sleep = $sleep;
-        $this->apiUrl = env('COORDINATION_API_URL_V2');
+        $this->apiUrl = env('WHATSAPP_SERVICE_API_URL').'sendMessage/COORDINATION';
     }
 
     public function handle()

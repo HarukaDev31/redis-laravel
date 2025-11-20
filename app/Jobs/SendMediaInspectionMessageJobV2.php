@@ -56,7 +56,7 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
         $this->mimeType = $mimeType;
         $this->message = $message;
         $this->sleep = $sleep;
-        $this->apiUrl = env('COORDINATION_API_URL_V2'); 
+        $this->apiUrl = env('WHATSAPP_SERVICE_API_URL').'sendMedia/COORDINATION'; 
         $this->inspectionId = $inspectionId;
         $this->originalFileName = $originalFileName;
     }
