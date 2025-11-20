@@ -90,7 +90,8 @@ class SendDataItemJobV2 implements ShouldQueue
                 'json' => $payload,
                 'headers' => [
                     'Content-Type' => 'application/json',
-                    'Accept' => 'application/json'
+                    'Accept' => 'application/json',
+                    'apikey' => env('API_KEY_V2'),
                 ]
             ]);
 
