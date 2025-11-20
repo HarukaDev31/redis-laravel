@@ -77,11 +77,12 @@ class SendSimpleMessageJobV2 implements ShouldQueue
 
             // log author
             Log::info('Authorization: ' . env('API_KEY_V2'));
+            //ADD API KEY AUTHORIZATION
             $response = $client->post($this->apiUrl, [
                 'headers' => [
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
-                    'Authorization' => 'Bearer ' . env('API_KEY_V2')
+                    'apikey' => env('API_KEY_V2'),
                 ],
                 'json' => [
                     'text' => $this->message,
