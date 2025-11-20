@@ -274,6 +274,55 @@ class WhatsAppController extends Controller
             ], 500);
         }
     }
+    public function sendMediaV2(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'fileContent' => 'required|string',
+            'fileName' => 'required|string',
+            'phoneNumberId' => 'required|string',
+            'mimeType' => 'nullable|string',
+            'message' => 'nullable|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            // Obtener extensión del archivo original
+            $fileName = $request->input('fileName');
+            $extension = pathinfo($fileName, PATHINFO_EXTENSION);
+            
+            // Guardar archivo temporal con extensión
+            $tempPath = tempnam(sys_get_temp_dir(), 'whatsapp_') . ($extension ? '.' . $extension : '');
+            file_put_contents($tempPath, base64_decode($request->input('fileContent')));
+
+            \App\Jobs\SendMediaMessageJobV2::dispatch(
+                $tempPath,
+                $request->input('phoneNumberId'),
+                $request->input('mimeType'),
+                $request->input('message'),
+                0,
+                $fileName,
+                $request->input('fromNumber')??'consolidado'
+            )->delay(now()->addSeconds($request->input('sleep', 0)));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Media encolada'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en sendMedia: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
     public function sendMediaInspection(Request $request)
     {
         $validator = Validator::make($request->all(), [
