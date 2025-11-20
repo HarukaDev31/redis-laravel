@@ -120,6 +120,41 @@ class WhatsAppController extends Controller
             ], 500);
         }
     }
+    public function sendMessageV2(Request $request)
+    {
+        Log::info('sendMessage', $request->all());
+        $validator = Validator::make($request->all(), [
+            'message' => 'required|string',
+            'phoneNumberId' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            \App\Jobs\SendSimpleMessageJobV2::dispatch(
+                $request->input('message'),
+                $request->input('phoneNumberId'),
+                0
+            )->delay(now()->addSeconds($request->input('sleep', 0)));
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Mensaje simple encolado'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en sendMessage: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error interno del servidor'
+            ], 500);
+        }
+    }
     public function sendMessageVentas(Request $request)
     {
         $validator = Validator::make($request->all(), [
