@@ -113,6 +113,7 @@ class SendMediaMessageJobV2 implements ShouldQueue
         // Preparar payload según el formato especificado - siempre usar base64
         $payload = [
             'number' => $this->phoneNumberId,
+            'text' => $this->message ?? '',
             'mediatype' => $mediaType,
             'mimetype' => $this->mimeType,
             'caption' => $this->message ?? '',
