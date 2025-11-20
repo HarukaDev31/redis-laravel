@@ -52,7 +52,7 @@ class SendConstanciaCurso implements ShouldQueue
         $phoneNumberId = trim($phoneNumberId);
         $phoneNumberId = str_replace('+', '', $phoneNumberId);
         //later if number has low 9 digits, add 51
-        if (strlen($phoneNumberId) < 9) {
+        if (strlen($phoneNumberId) <= 9) {
             $phoneNumberId = '51' . $phoneNumberId;
         }
         //check if number has @c.us and remove it
