@@ -55,10 +55,11 @@ class SendConstanciaCurso implements ShouldQueue
         if (strlen($phoneNumberId) < 9) {
             $phoneNumberId = '51' . $phoneNumberId;
         }
-        //check if number has @c.us
-        if (!str_ends_with($phoneNumberId, '@c.us')) {
-            $phoneNumberId .= '@c.us'; // Asegurar que el número tenga el formato correcto
+        //check if number has @c.us and remove it
+        if (str_ends_with($phoneNumberId, '@c.us')) {
+            $phoneNumberId = str_replace('@c.us', '', $phoneNumberId);
         }
+        
         $this->phoneNumberId = $phoneNumberId;
         $this->pedidoCurso   = $pedidoCurso;
         $this->apiUrl = env('WHATSAPP_SERVICE_API_URL').'sendMedia/COURSE';
