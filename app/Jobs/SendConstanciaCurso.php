@@ -55,7 +55,7 @@ class SendConstanciaCurso implements ShouldQueue
         }
         $this->phoneNumberId = $phoneNumberId;
         $this->pedidoCurso   = $pedidoCurso;
-        $this->apiUrl        = env('CURSO_API_URL');
+        $this->apiUrl        = env('WHATSAPP_SERVICE_API_URL').'sendMedia/COURSE';
     }
 
     public function handle()
