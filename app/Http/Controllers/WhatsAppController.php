@@ -293,16 +293,10 @@ class WhatsAppController extends Controller
         }
 
         try {
-            // Obtener extensión del archivo original
             $fileName = $request->input('fileName');
-            $extension = pathinfo($fileName, PATHINFO_EXTENSION);
-            
-            // Guardar archivo temporal con extensión
-            $tempPath = tempnam(sys_get_temp_dir(), 'whatsapp_') . ($extension ? '.' . $extension : '');
-            file_put_contents($tempPath, base64_decode($request->input('fileContent')));
 
             \App\Jobs\SendMediaMessageJobV2::dispatch(
-                $tempPath,
+                $request->input('fileContent'), // Pasar base64 directamente
                 $request->input('phoneNumberId'),
                 $request->input('mimeType'),
                 $request->input('message'),

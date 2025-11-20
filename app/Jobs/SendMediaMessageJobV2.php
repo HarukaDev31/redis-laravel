@@ -20,7 +20,7 @@ class SendMediaMessageJobV2 implements ShouldQueue
     private $apiUrl;
     
     /** @var string */
-    private $filePath;
+    private $fileBase64;
     
     /** @var string|null */
     private $mimeType;
@@ -39,7 +39,7 @@ class SendMediaMessageJobV2 implements ShouldQueue
     private const HTTP_TIMEOUT = 60; // segundos
     private const CONNECT_TIMEOUT = 5; // segundos
     public function __construct(
-        string $filePath,
+        string $fileBase64,
         string $phoneNumberId = "51912705923@c.us",
         ?string $mimeType = null,
         ?string $message = null,
@@ -47,7 +47,7 @@ class SendMediaMessageJobV2 implements ShouldQueue
         ?string $originalFileName = null,
         string $fromNumberId = "consolidado"
     ) {
-        $this->filePath = $filePath;
+        $this->fileBase64 = $fileBase64;
         $this->phoneNumberId = $phoneNumberId;
         $this->mimeType = $mimeType;
         $this->message = $message;
@@ -71,22 +71,12 @@ class SendMediaMessageJobV2 implements ShouldQueue
     }
   public function handle()
 {
-    $tempFile = null;
-    
     try {
-        // Si es una URL, descargar temporalmente
-        if (filter_var($this->filePath, FILTER_VALIDATE_URL)) {
-            $tempFile = tempnam(sys_get_temp_dir(), 'whatsapp_media_');
-            file_put_contents($tempFile, file_get_contents($this->filePath));
-            $this->filePath = $tempFile;
-            $fileName = $this->originalFileName ?: basename(parse_url($this->filePath, PHP_URL_PATH));
-        } else {
-            $fileName = $this->originalFileName ?: basename($this->filePath);
-        }
+        $fileName = $this->originalFileName ?: 'file';
 
         // Determinar MIME type si no está especificado
         if (empty($this->mimeType)) {
-            $this->mimeType = $this->detectMimeType($this->filePath);
+            $this->mimeType = $this->detectMimeTypeFromFileName($fileName);
         }
 
         // Esperar el tiempo especificado
@@ -110,14 +100,14 @@ class SendMediaMessageJobV2 implements ShouldQueue
         ]);
 
 
-        // Preparar payload según el formato especificado - siempre usar base64
+        // Preparar payload según el formato especificado - usar base64 directo
         $payload = [
             'number' => $this->phoneNumberId,
             'text' => $this->message ?? '',
             'mediatype' => $mediaType,
             'mimetype' => $this->mimeType,
             'caption' => $this->message ?? '',
-            'media' => base64_encode(file_get_contents($this->filePath)),
+            'media' => $this->fileBase64, // Ya viene en base64
             'fileName' => $fileName
         ];
 
@@ -139,7 +129,6 @@ class SendMediaMessageJobV2 implements ShouldQueue
             'file' => $fileName,
             'type' => $this->mimeType,
             'message' => $this->message,
-            'filePath' => $this->filePath,
             'sleep' => $this->sleep,
             'originalFileName' => $this->originalFileName,
             'fromNumberId' => $this->fromNumberId,
@@ -155,18 +144,13 @@ class SendMediaMessageJobV2 implements ShouldQueue
         ]);
         $this->fail($e);
     } finally {
-        // Eliminar archivo temporal si existe
-        if ($tempFile && file_exists($tempFile)) {
-            unlink($tempFile);
-        }
-        
         // Asegurar que el job se marca como completado
         $this->delete();
     }
 }
-    private function detectMimeType(string $filePath): string
+    private function detectMimeTypeFromFileName(string $fileName): string
     {
-        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
         
         switch ($extension) {
             case 'jpg':
@@ -181,7 +165,7 @@ class SendMediaMessageJobV2 implements ShouldQueue
             case 'xlsx':
                 return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
             default:
-                return mime_content_type($filePath) ?: 'application/octet-stream';
+                return 'application/octet-stream';
         }
     }
 
