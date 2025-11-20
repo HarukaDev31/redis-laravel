@@ -86,7 +86,7 @@ class SendSimpleMessageJobV2 implements ShouldQueue
                 ],
                 'json' => [
                     'text' => $this->message,
-                    'numero' => $this->phoneNumberId
+                    'number' => $this->phoneNumberId
                 ]
             ]);
 
