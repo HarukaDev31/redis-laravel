@@ -38,7 +38,8 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
     private $originalFileName;
     
     private $table = 'contenedor_consolidado_almacen_inspection';
-
+    private const HTTP_TIMEOUT = 60; // segundos
+    private const CONNECT_TIMEOUT = 5; // segundos
     public function __construct(
         string $filePath,
         string $phoneNumberId = "51912705923@c.us",
@@ -99,11 +100,12 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
             $mediaType = $this->getMediaType($this->mimeType);
 
             // Crear cliente Guzzle
-            $client = new Client([
-                'timeout' => 60,
-                'connect_timeout' => 30,
+            $client = new \GuzzleHttp\Client([
+                'handler' => $stack,
+                'timeout' => self::HTTP_TIMEOUT,
+                'connect_timeout' => self::CONNECT_TIMEOUT,
                 'http_errors' => false,
-                'verify' => false
+                'verify' => false // Solo si no usas SSL
             ]);
 
             // Preparar payload según el formato V2 - siempre usar base64

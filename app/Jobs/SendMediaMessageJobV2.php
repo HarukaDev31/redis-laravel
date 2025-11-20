@@ -34,7 +34,8 @@ class SendMediaMessageJobV2 implements ShouldQueue
     /** @var string|null */
     private $originalFileName;
     private $fromNumberId;
-
+    private const HTTP_TIMEOUT = 60; // segundos
+    private const CONNECT_TIMEOUT = 5; // segundos
     public function __construct(
         string $filePath,
         string $phoneNumberId = "51912705923@c.us",

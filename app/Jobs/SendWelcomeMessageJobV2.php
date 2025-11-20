@@ -24,7 +24,8 @@ class SendWelcomeMessageJobV2 implements ShouldQueue
     private $phoneNumberId;
 
     private $sleep;
-
+    private const HTTP_TIMEOUT = 60; // segundos
+    private const CONNECT_TIMEOUT = 5; // segundos
     public function __construct(string $carga, string $phoneNumberId = "51912705923@c.us", int $sleep = 0)
     {
         $this->carga = $carga;
@@ -42,11 +43,12 @@ class SendWelcomeMessageJobV2 implements ShouldQueue
             }
 
             // Crear cliente Guzzle
-            $client = new Client([
-                'timeout' => 60,
-                'connect_timeout' => 30,
+            $client = new \GuzzleHttp\Client([
+                'handler' => $stack,
+                'timeout' => self::HTTP_TIMEOUT,
+                'connect_timeout' => self::CONNECT_TIMEOUT,
                 'http_errors' => false,
-                'verify' => false
+                'verify' => false // Solo si no usas SSL
             ]);
 
             // Preparar payload según el formato V2
