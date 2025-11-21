@@ -170,7 +170,7 @@ class WhatsAppController extends Controller
         }
 
         try {
-            \App\Jobs\SendSimpleMessageJob::dispatch(
+            \App\Jobs\SendSimpleMessageJobV2::dispatch(
                 $request->input('message'),
                 $request->input('phoneNumberId'),
                 0,
@@ -205,7 +205,7 @@ class WhatsAppController extends Controller
         }
 
         try {
-            \App\Jobs\SendSimpleMessageJob::dispatch(
+            \App\Jobs\SendSimpleMessageJobV2::dispatch(
                 $request->input('message'),
                 $request->input('phoneNumberId'),
                 0,
