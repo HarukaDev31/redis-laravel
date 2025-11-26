@@ -387,7 +387,7 @@ class WhatsAppController extends Controller
                 'errors' => $validator->errors()
             ], 422);
         }
-
+        Log::info('sendMediaInspectionV2', $request->all());
         try {
             // fileContent ahora es una URL, pasarla directamente al job
             $fileUrl = $request->input('fileContent');
