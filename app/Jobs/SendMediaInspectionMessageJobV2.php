@@ -132,11 +132,14 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
                 ]
             ]);
 
+            // Leer el cuerpo de la respuesta una sola vez
+            $responseBody = $response->getBody()->getContents();
+
             if ($response->getStatusCode() >= 400) {
-                throw new \Exception("Error al enviar media inspection: " . $response->getBody()->getContents());
+                throw new \Exception("Error al enviar media inspection: " . $responseBody);
             }
 
-            Log::info('Response V2: ' . $response->getBody()->getContents());
+            Log::info('Response V2: ' . $responseBody);
             Log::info('Media inspection V2 enviada', [
                 'phoneNumberId' => $this->phoneNumberId,
                 'file' => $fileName,
@@ -149,7 +152,7 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
                 'send_status' => 'SENDED'
             ]);
 
-            return json_decode($response->getBody()->getContents(), true);
+            return json_decode($responseBody, true);
 
         } catch (\Exception $e) {
             Log::error('Error en SendMediaInspectionMessageJobV2: ' . $e->getMessage(), [
@@ -163,9 +166,6 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
             if ($tempFile && file_exists($tempFile)) {
                 unlink($tempFile);
             }
-            
-            // Asegurar que el job se marca como completado
-            $this->delete();
         }
     }
 
