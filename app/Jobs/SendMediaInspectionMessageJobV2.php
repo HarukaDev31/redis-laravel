@@ -64,8 +64,6 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
 
     public function handle()
     {
-        $tempFile = null;
-        
         try {
             if(!$this->inspectionId) {
                 Log::error('El id de la inspección no está definido', [
@@ -79,39 +77,57 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
             // Verificar status en la tabla
             $status = DB::table($this->table)->where('id', $this->inspectionId)->value('send_status');
 
-            // Si es una URL, descargar temporalmente
+            // Determinar si es una URL
             $isUrl = filter_var($this->filePath, FILTER_VALIDATE_URL);
+            $fileName = null;
+            $fileSize = null;
+            $mediaContent = null;
+
             if ($isUrl) {
-                $tempFile = tempnam(sys_get_temp_dir(), 'whatsapp_media_');
-                $fileContents = @file_get_contents($this->filePath);
-                if ($fileContents === false) {
-                    throw new \Exception("No se pudo descargar el archivo desde la URL: " . $this->filePath);
-                }
-                file_put_contents($tempFile, $fileContents);
-                $this->filePath = $tempFile;
+                // Si es URL, usar la URL directamente sin descargar
                 $fileName = $this->originalFileName ?: basename(parse_url($this->filePath, PHP_URL_PATH));
+                $mediaContent = $this->filePath; // Pasar la URL directamente
+                
+                // Determinar MIME type desde el nombre del archivo o extensión de la URL
+                if (empty($this->mimeType)) {
+                    $this->mimeType = $this->detectMimeTypeFromFileName($fileName);
+                }
             } else {
+                // Si es un archivo local, validar y leer
                 $fileName = $this->originalFileName ?: basename($this->filePath);
                 
-                // Validar que el archivo existe solo si no es una URL
+                // Validar que el archivo existe
                 if (!file_exists($this->filePath)) {
                     throw new \Exception("El archivo no existe: " . $this->filePath);
                 }
-            }
 
-            // Validar tamaño del archivo (después de descargar si era URL)
-            $fileSize = filesize($this->filePath);
-            if ($fileSize === false) {
-                throw new \Exception("No se pudo obtener el tamaño del archivo: " . $this->filePath);
-            }
+                // Validar tamaño del archivo
+                $fileSize = filesize($this->filePath);
+                if ($fileSize === false) {
+                    throw new \Exception("No se pudo obtener el tamaño del archivo: " . $this->filePath);
+                }
 
-            if ($fileSize > self::MAX_FILE_SIZE) {
-                throw new \Exception("El archivo es demasiado grande: " . round($fileSize / 1024 / 1024, 2) . "MB (máximo: " . round(self::MAX_FILE_SIZE / 1024 / 1024, 2) . "MB)");
-            }
+                if ($fileSize > self::MAX_FILE_SIZE) {
+                    throw new \Exception("El archivo es demasiado grande: " . round($fileSize / 1024 / 1024, 2) . "MB (máximo: " . round(self::MAX_FILE_SIZE / 1024 / 1024, 2) . "MB)");
+                }
 
-            // Determinar MIME type si no está especificado
-            if (empty($this->mimeType)) {
-                $this->mimeType = $this->detectMimeType($this->filePath);
+                // Determinar MIME type si no está especificado
+                if (empty($this->mimeType)) {
+                    $this->mimeType = $this->detectMimeType($this->filePath);
+                }
+
+                // Leer el contenido del archivo y convertir a base64
+                $fileContents = file_get_contents($this->filePath);
+                if ($fileContents === false) {
+                    throw new \Exception("No se pudo leer el archivo: " . $this->filePath);
+                }
+
+                $mediaContent = base64_encode($fileContents);
+                
+                // Validar que la codificación base64 fue exitosa
+                if ($mediaContent === false || empty($mediaContent)) {
+                    throw new \Exception("Error al codificar el archivo en base64");
+                }
             }
 
             // Esperar el tiempo especificado
@@ -134,26 +150,14 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
                 'verify' => false // Solo si no usas SSL
             ]);
 
-            // Leer el contenido del archivo
-            $fileContents = file_get_contents($this->filePath);
-            if ($fileContents === false) {
-                throw new \Exception("No se pudo leer el archivo: " . $this->filePath);
-            }
-
-            // Preparar payload según el formato V2 - siempre usar base64
-            $mediaBase64 = base64_encode($fileContents);
-            
-            // Validar que la codificación base64 fue exitosa
-            if ($mediaBase64 === false || empty($mediaBase64)) {
-                throw new \Exception("Error al codificar el archivo en base64");
-            }
-
+            // Preparar payload según el formato V2
+            // Si es URL, enviar la URL directamente; si es archivo local, enviar base64
             $payload = [
                 'number' => $this->phoneNumberId,
                 'mediatype' => $mediaType,
                 'mimetype' => $this->mimeType,
                 'caption' => $this->message ?? '',
-                'media' => $mediaBase64,
+                'media' => $mediaContent, // URL o base64 según corresponda
                 'fileName' => $fileName
             ];
 
@@ -161,11 +165,12 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
             Log::info('Enviando media inspection V2', [
                 'phoneNumberId' => $this->phoneNumberId,
                 'fileName' => $fileName,
-                'fileSize' => $fileSize,
+                'fileSize' => $fileSize ? round($fileSize / 1024 / 1024, 2) . 'MB' : 'N/A (URL)',
                 'mimeType' => $this->mimeType,
                 'mediaType' => $mediaType,
                 'inspectionId' => $this->inspectionId,
                 'apiUrl' => $this->apiUrl,
+                'isUrl' => $isUrl,
                 'payloadSize' => strlen(json_encode($payload)) . ' bytes'
             ]);
 
@@ -224,10 +229,7 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
             ]);
             $this->fail($e);
         } finally {
-            // Eliminar archivo temporal si existe
-            if ($tempFile && file_exists($tempFile)) {
-                unlink($tempFile);
-            }
+            // No hay archivos temporales que limpiar ya que no descargamos URLs
         }
     }
 
@@ -249,6 +251,27 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
                 return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
             default:
                 return mime_content_type($filePath) ?: 'application/octet-stream';
+        }
+    }
+
+    private function detectMimeTypeFromFileName(string $fileName): string
+    {
+        $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        
+        switch ($extension) {
+            case 'jpg':
+            case 'jpeg':
+                return 'image/jpeg';
+            case 'png':
+                return 'image/png';
+            case 'mp4':
+                return 'video/mp4';
+            case 'pdf':
+                return 'application/pdf';
+            case 'xlsx':
+                return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            default:
+                return 'application/octet-stream';
         }
     }
 
