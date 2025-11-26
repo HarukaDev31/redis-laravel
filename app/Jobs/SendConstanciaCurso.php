@@ -117,6 +117,7 @@ class SendConstanciaCurso implements ShouldQueue
                     ->where('ID_Pedido_Curso', $this->pedidoCurso->ID_Pedido_Curso)
                     ->update([
                         'send_constancia' => 'SENDED',
+                        'from_intranet' => false,
                     ]);
 
                 // Enviar correo SOLO después de que WhatsApp se envíe exitosamente
