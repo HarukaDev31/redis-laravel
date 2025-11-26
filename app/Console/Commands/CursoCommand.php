@@ -56,7 +56,6 @@ class CursoCommand extends Command
             //get pedidos id_campana in campanas send_constancia is PENDING and tipo_curso is 1 and Nu_Estado is 2 and join with entidad and get Nu_Celular_Entidad
             $pedidos = DB::table($this->table_pedido_curso)
                 ->whereIn('pedido_curso.ID_Campana', $campanas->pluck('ID_Campana'))
-                ->where('pedido_curso.send_constancia', 'PENDING')
                 ->where('pedido_curso.tipo_curso', 1)
                 ->where('pedido_curso.Nu_Estado', 2)
                 ->join($this->table_campana, 'pedido_curso.ID_Campana', '=', 'campana_curso.ID_Campana')

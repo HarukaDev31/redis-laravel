@@ -103,7 +103,7 @@ class SendConstanciaCurso implements ShouldQueue
             ]);
             
             // Enviar el PDF por WhatsApp
-            $response = $this->sendPDFToWhatsApp($pdfPath);
+          /*  $response = $this->sendPDFToWhatsApp($pdfPath);
 
             if ($response->getStatusCode() < 400) {
                 // WhatsApp se envió exitosamente
@@ -138,7 +138,7 @@ class SendConstanciaCurso implements ShouldQueue
                     ]);
 
                 return;
-            }
+            }*/
         } catch (\Exception $e) {
             Log::error('Error en SendConstanciaCurso: ' . $e->getMessage(), [
                 'phoneNumberId' => $this->phoneNumberId,
