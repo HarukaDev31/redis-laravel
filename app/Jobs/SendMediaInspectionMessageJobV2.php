@@ -80,21 +80,26 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
             $status = DB::table($this->table)->where('id', $this->inspectionId)->value('send_status');
 
             // Si es una URL, descargar temporalmente
-            if (filter_var($this->filePath, FILTER_VALIDATE_URL)) {
+            $isUrl = filter_var($this->filePath, FILTER_VALIDATE_URL);
+            if ($isUrl) {
                 $tempFile = tempnam(sys_get_temp_dir(), 'whatsapp_media_');
-                file_put_contents($tempFile, file_get_contents($this->filePath));
+                $fileContents = @file_get_contents($this->filePath);
+                if ($fileContents === false) {
+                    throw new \Exception("No se pudo descargar el archivo desde la URL: " . $this->filePath);
+                }
+                file_put_contents($tempFile, $fileContents);
                 $this->filePath = $tempFile;
                 $fileName = $this->originalFileName ?: basename(parse_url($this->filePath, PHP_URL_PATH));
             } else {
                 $fileName = $this->originalFileName ?: basename($this->filePath);
+                
+                // Validar que el archivo existe solo si no es una URL
+                if (!file_exists($this->filePath)) {
+                    throw new \Exception("El archivo no existe: " . $this->filePath);
+                }
             }
 
-            // Validar que el archivo existe
-            if (!file_exists($this->filePath)) {
-                throw new \Exception("El archivo no existe: " . $this->filePath);
-            }
-
-            // Validar tamaño del archivo
+            // Validar tamaño del archivo (después de descargar si era URL)
             $fileSize = filesize($this->filePath);
             if ($fileSize === false) {
                 throw new \Exception("No se pudo obtener el tamaño del archivo: " . $this->filePath);

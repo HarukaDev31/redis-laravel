@@ -372,7 +372,7 @@ class WhatsAppController extends Controller
     public function sendMediaInspectionV2(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'fileContent' => 'required|string',
+            'fileContent' => 'required|url', // Cambiar a validación de URL
             'fileName' => 'required|string',
             'phoneNumberId' => 'required|string',
             'mimeType' => 'nullable|string',
@@ -389,16 +389,13 @@ class WhatsAppController extends Controller
         }
 
         try {
-            // Obtener extensión del archivo original
+            // fileContent ahora es una URL, pasarla directamente al job
+            $fileUrl = $request->input('fileContent');
             $fileName = $request->input('fileName');
-            $extension = pathinfo($fileName, PATHINFO_EXTENSION);
-            
-            // Guardar archivo temporal con extensión
-            $tempPath = tempnam(sys_get_temp_dir(), 'whatsapp_') . ($extension ? '.' . $extension : '');
-            file_put_contents($tempPath, base64_decode($request->input('fileContent')));
 
+            // El job manejará la descarga de la URL internamente
             \App\Jobs\SendMediaInspectionMessageJobV2::dispatch(
-                $tempPath,
+                $fileUrl, // Pasar la URL directamente
                 $request->input('phoneNumberId'),
                 $request->input('mimeType'),
                 $request->input('message'),
@@ -413,7 +410,9 @@ class WhatsAppController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error en sendMediaInspeccionV2: ' . $e->getMessage());
+            Log::error('Error en sendMediaInspeccionV2: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'status' => 'error',
                 'message' => 'Error interno del servidor'
