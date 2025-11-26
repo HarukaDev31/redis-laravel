@@ -53,6 +53,7 @@ class CursoCommand extends Command
                 ->whereNull('Fe_Borrado')
                 //where month of Fe_Fin is september or october or november
                 ->whereMonth('Fe_Fin', '=', date('m'))
+                ->where('send_constancia', 'PENDING')
 
                 ->get();
             //get pedidos id_campana in campanas send_constancia is PENDING and tipo_curso is 1 and Nu_Estado is 2 and join with entidad and get Nu_Celular_Entidad
