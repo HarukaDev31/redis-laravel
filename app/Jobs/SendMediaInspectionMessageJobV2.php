@@ -42,6 +42,7 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
     private $table = 'contenedor_consolidado_almacen_inspection';
     private const HTTP_TIMEOUT = 60; // segundos
     private const CONNECT_TIMEOUT = 5; // segundos
+    private const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB máximo
     public function __construct(
         string $filePath,
         string $phoneNumberId = "51912705923@c.us",
@@ -88,6 +89,21 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
                 $fileName = $this->originalFileName ?: basename($this->filePath);
             }
 
+            // Validar que el archivo existe
+            if (!file_exists($this->filePath)) {
+                throw new \Exception("El archivo no existe: " . $this->filePath);
+            }
+
+            // Validar tamaño del archivo
+            $fileSize = filesize($this->filePath);
+            if ($fileSize === false) {
+                throw new \Exception("No se pudo obtener el tamaño del archivo: " . $this->filePath);
+            }
+
+            if ($fileSize > self::MAX_FILE_SIZE) {
+                throw new \Exception("El archivo es demasiado grande: " . round($fileSize / 1024 / 1024, 2) . "MB (máximo: " . round(self::MAX_FILE_SIZE / 1024 / 1024, 2) . "MB)");
+            }
+
             // Determinar MIME type si no está especificado
             if (empty($this->mimeType)) {
                 $this->mimeType = $this->detectMimeType($this->filePath);
@@ -113,15 +129,40 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
                 'verify' => false // Solo si no usas SSL
             ]);
 
+            // Leer el contenido del archivo
+            $fileContents = file_get_contents($this->filePath);
+            if ($fileContents === false) {
+                throw new \Exception("No se pudo leer el archivo: " . $this->filePath);
+            }
+
             // Preparar payload según el formato V2 - siempre usar base64
+            $mediaBase64 = base64_encode($fileContents);
+            
+            // Validar que la codificación base64 fue exitosa
+            if ($mediaBase64 === false || empty($mediaBase64)) {
+                throw new \Exception("Error al codificar el archivo en base64");
+            }
+
             $payload = [
                 'number' => $this->phoneNumberId,
                 'mediatype' => $mediaType,
                 'mimetype' => $this->mimeType,
                 'caption' => $this->message ?? '',
-                'media' => base64_encode(file_get_contents($this->filePath)),
+                'media' => $mediaBase64,
                 'fileName' => $fileName
             ];
+
+            // Log antes de enviar (sin el contenido del media para no saturar los logs)
+            Log::info('Enviando media inspection V2', [
+                'phoneNumberId' => $this->phoneNumberId,
+                'fileName' => $fileName,
+                'fileSize' => $fileSize,
+                'mimeType' => $this->mimeType,
+                'mediaType' => $mediaType,
+                'inspectionId' => $this->inspectionId,
+                'apiUrl' => $this->apiUrl,
+                'payloadSize' => strlen(json_encode($payload)) . ' bytes'
+            ]);
 
             $response = $client->post($this->apiUrl, [
                 'json' => $payload,
@@ -136,7 +177,23 @@ class SendMediaInspectionMessageJobV2 implements ShouldQueue
             $responseBody = $response->getBody()->getContents();
 
             if ($response->getStatusCode() >= 400) {
-                throw new \Exception("Error al enviar media inspection: " . $responseBody);
+                // Log el error completo antes de lanzar la excepción
+                Log::error('Error del API al enviar media inspection V2', [
+                    'statusCode' => $response->getStatusCode(),
+                    'responseBody' => $responseBody,
+                    'phoneNumberId' => $this->phoneNumberId,
+                    'inspectionId' => $this->inspectionId,
+                    'fileName' => $fileName,
+                    'apiUrl' => $this->apiUrl
+                ]);
+                
+                // Intentar parsear la respuesta para obtener más detalles
+                $errorData = json_decode($responseBody, true);
+                $errorMessage = is_array($errorData) && isset($errorData['response']['message']) 
+                    ? $errorData['response']['message'] 
+                    : $responseBody;
+                
+                throw new \Exception("Error al enviar media inspection (HTTP {$response->getStatusCode()}): " . $errorMessage);
             }
 
             Log::info('Response V2: ' . $responseBody);
