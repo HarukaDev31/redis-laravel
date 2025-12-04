@@ -68,7 +68,7 @@ class SendMediaMessageJobV2 implements ShouldQueue
             return env('WHATSAPP_SERVICE_API_URL').'sendMedia/COURSE';
         }
         if($this->fromNumberId === "administracion"){
-            return env('WHATSAPP_SERVICE_API_URL').'sendMedia/ADMINISTRATION';
+            return env('WHATSAPP_SERVICE_API_URL').'sendMedia/ADMINISTRACION';
         }
         return env('WHATSAPP_SERVICE_API_URL').'sendMedia/COORDINATION';
     }
