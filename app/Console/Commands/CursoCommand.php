@@ -52,7 +52,11 @@ class CursoCommand extends Command
             $campanas = DB::table($this->table_campana)
                 ->whereNull('Fe_Borrado')
                 ->get();
-            $pedidos = DB::table($this->table_pedido_curso . ' AS CC')
+            
+            Log::info('Found ' . $campanas->count() . ' campanas.');
+            
+            // Primero obtener todos los pedidos que cumplan las condiciones básicas
+            $pedidosQuery = DB::table($this->table_pedido_curso . ' AS CC')
                 ->whereIn('CC.ID_Campana', $campanas->pluck('ID_Campana'))
                 ->where('CC.tipo_curso', 1)
                 ->where('CC.Nu_Estado', 2)
@@ -90,13 +94,35 @@ class CursoCommand extends Command
                         AND ccp.name = "ADELANTO"
                         AND cccp.status = "CONFIRMED"
                     ) AS pagos_confirmados')
-                ])
-                ->havingRaw('total_pagos > 0') // Debe tener al menos un pago
-                ->havingRaw('total_pagos_adelanto = pagos_confirmados') // Todos los pagos deben estar confirmados
-                ->havingRaw('ROUND(total_pagos, 2) = ROUND(CC.Ss_Total, 2)') // El total pagado debe ser igual al total del curso
-                ->get();
+                ]);
             
-            Log::info('Found ' . $pedidos->count() . ' pedidos to process.');
+            $allPedidos = $pedidosQuery->get();
+            Log::info('Found ' . $allPedidos->count() . ' pedidos before filtering by payments.');
+            
+            // Filtrar en PHP para mejor debugging
+            $pedidos = $allPedidos->filter(function ($pedido) {
+                $totalPagos = (float) $pedido->total_pagos;
+                $totalCurso = (float) $pedido->Ss_Total;
+                $totalPagosAdelanto = (int) $pedido->total_pagos_adelanto;
+                $pagosConfirmados = (int) $pedido->pagos_confirmados;
+                
+                $hasPagos = $totalPagos > 0;
+                $allPagosConfirmed = $totalPagosAdelanto > 0 && $totalPagosAdelanto === $pagosConfirmados;
+                $totalMatches = round($totalPagos, 2) === round($totalCurso, 2);
+                
+                Log::info('Pedido ID: ' . $pedido->ID_Pedido_Curso . 
+                    ' - Total pagado: ' . $totalPagos . 
+                    ' - Total curso: ' . $totalCurso . 
+                    ' - Total adelanto: ' . $totalPagosAdelanto . 
+                    ' - Confirmados: ' . $pagosConfirmados .
+                    ' - Has pagos: ' . ($hasPagos ? 'YES' : 'NO') .
+                    ' - All confirmed: ' . ($allPagosConfirmed ? 'YES' : 'NO') .
+                    ' - Total matches: ' . ($totalMatches ? 'YES' : 'NO'));
+                
+                return $hasPagos && $allPagosConfirmed && $totalMatches;
+            });
+            
+            Log::info('Found ' . $pedidos->count() . ' pedidos to process after filtering.');
             Log::info('Processing each pedido...');
             
             foreach ($pedidos as $pedido) {
