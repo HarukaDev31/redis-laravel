@@ -77,7 +77,7 @@ class CursoCommand extends Command
                         JOIN pedido_curso_pagos_concept ccp ON cccp.id_concept = ccp.id
                         WHERE cccp.id_pedido_curso = CC.ID_Pedido_Curso
                         AND ccp.name = "ADELANTO"
-                        AND cccp.status = "CONFIRMED"
+                        AND cccp.status = "CONFIRMADO"
                     ) AS total_pagos'),
                     DB::raw('(
                         SELECT COUNT(*)
@@ -92,7 +92,7 @@ class CursoCommand extends Command
                         JOIN pedido_curso_pagos_concept ccp ON cccp.id_concept = ccp.id
                         WHERE cccp.id_pedido_curso = CC.ID_Pedido_Curso
                         AND ccp.name = "ADELANTO"
-                        AND cccp.status = "CONFIRMED"
+                        AND cccp.status = "CONFIRMADO"
                     ) AS pagos_confirmados')
                 ]);
             
@@ -107,7 +107,7 @@ class CursoCommand extends Command
                 $pagosConfirmados = (int) $pedido->pagos_confirmados;
                 
                 $hasPagos = $totalPagos > 0;
-                $allPagosConfirmed = $totalPagosAdelanto > 0 && $totalPagosAdelanto === $pagosConfirmados;
+                $allPagosCONFIRMADO = $totalPagosAdelanto > 0 && $totalPagosAdelanto === $pagosConfirmados;
                 $totalMatches = round($totalPagos, 2) === round($totalCurso, 2);
                 
                 Log::info('Pedido ID: ' . $pedido->ID_Pedido_Curso . 
@@ -116,10 +116,10 @@ class CursoCommand extends Command
                     ' - Total adelanto: ' . $totalPagosAdelanto . 
                     ' - Confirmados: ' . $pagosConfirmados .
                     ' - Has pagos: ' . ($hasPagos ? 'YES' : 'NO') .
-                    ' - All confirmed: ' . ($allPagosConfirmed ? 'YES' : 'NO') .
+                    ' - All CONFIRMADO: ' . ($allPagosCONFIRMADO ? 'YES' : 'NO') .
                     ' - Total matches: ' . ($totalMatches ? 'YES' : 'NO'));
                 
-                return $hasPagos && $allPagosConfirmed && $totalMatches;
+                return $hasPagos && $allPagosCONFIRMADO && $totalMatches;
             });
             
             Log::info('Found ' . $pedidos->count() . ' pedidos to process after filtering.');
@@ -135,7 +135,7 @@ class CursoCommand extends Command
             }
             
             if ($pedidos->isEmpty()) {
-                Log::info('No pending pedidos found with confirmed payments.');
+                Log::info('No pending pedidos found with CONFIRMADO payments.');
                 return 0; // No hay pedidos pendientes
             }
             
