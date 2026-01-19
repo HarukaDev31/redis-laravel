@@ -51,37 +51,73 @@ class CursoCommand extends Command
             Log::info('Fetching data from the database...');
             $campanas = DB::table($this->table_campana)
                 ->whereNull('Fe_Borrado')
-                //where month of Fe_Fin is september or october or november
-                ->whereMonth('Fe_Fin', '=', date('m'))
                 ->where('send_constancia', 'PENDING')
-
                 ->get();
-            //get pedidos id_campana in campanas send_constancia is PENDING and tipo_curso is 1 and Nu_Estado is 2 and join with entidad and get Nu_Celular_Entidad
-            $pedidos = DB::table($this->table_pedido_curso)
-                ->whereIn('pedido_curso.ID_Campana', $campanas->pluck('ID_Campana'))
-                ->where('pedido_curso.tipo_curso', 1)
-                ->where('pedido_curso.Nu_Estado', 2)
-                ->join($this->table_campana, 'pedido_curso.ID_Campana', '=', 'campana_curso.ID_Campana')
-                ->join($this->table_entidad, 'pedido_curso.ID_Entidad', '=', 'entidad.ID_Entidad')
+            $pedidos = DB::table($this->table_pedido_curso . ' AS CC')
+                ->whereIn('CC.ID_Campana', $campanas->pluck('ID_Campana'))
+                ->where('CC.tipo_curso', 1)
+                ->where('CC.Nu_Estado', 2)
+                ->join($this->table_campana, 'CC.ID_Campana', '=', 'campana_curso.ID_Campana')
+                ->join($this->table_entidad, 'CC.ID_Entidad', '=', 'entidad.ID_Entidad')
                 ->join($this->table_usuario, 'entidad.ID_Entidad', '=', 'usuario.ID_Entidad')
-                ->select('pedido_curso.ID_Pedido_Curso', 'entidad.Nu_Celular_Entidad', 'entidad.No_Entidad','entidad.Txt_Email_Entidad', 'Fe_Fin')
+                ->select([
+                    'CC.ID_Pedido_Curso',
+                    'CC.Ss_Total',
+                    'entidad.Nu_Celular_Entidad',
+                    'entidad.No_Entidad',
+                    'entidad.Txt_Email_Entidad',
+                    'campana_curso.Fe_Fin',
+                    DB::raw('(
+                        SELECT IFNULL(SUM(cccp.monto), 0)
+                        FROM pedido_curso_pagos as cccp
+                        JOIN pedido_curso_pagos_concept ccp ON cccp.id_concept = ccp.id
+                        WHERE cccp.id_pedido_curso = CC.ID_Pedido_Curso
+                        AND ccp.name = "ADELANTO"
+                        AND cccp.status = "CONFIRMED"
+                    ) AS total_pagos'),
+                    DB::raw('(
+                        SELECT COUNT(*)
+                        FROM pedido_curso_pagos as cccp
+                        JOIN pedido_curso_pagos_concept ccp ON cccp.id_concept = ccp.id
+                        WHERE cccp.id_pedido_curso = CC.ID_Pedido_Curso
+                        AND ccp.name = "ADELANTO"
+                    ) AS total_pagos_adelanto'),
+                    DB::raw('(
+                        SELECT COUNT(*)
+                        FROM pedido_curso_pagos as cccp
+                        JOIN pedido_curso_pagos_concept ccp ON cccp.id_concept = ccp.id
+                        WHERE cccp.id_pedido_curso = CC.ID_Pedido_Curso
+                        AND ccp.name = "ADELANTO"
+                        AND cccp.status = "CONFIRMED"
+                    ) AS pagos_confirmados')
+                ])
+                ->havingRaw('total_pagos > 0') // Debe tener al menos un pago
+                ->havingRaw('total_pagos_adelanto = pagos_confirmados') // Todos los pagos deben estar confirmados
+                ->havingRaw('ROUND(total_pagos, 2) = ROUND(CC.Ss_Total, 2)') // El total pagado debe ser igual al total del curso
                 ->get();
+            
             Log::info('Found ' . $pedidos->count() . ' pedidos to process.');
             Log::info('Processing each pedido...');
+            
             foreach ($pedidos as $pedido) {
-                Log::info('Processing pedido ID: ' . json_encode($pedido));
-                //call job SendSimpleMessageJobCron
+                Log::info('Processing pedido ID: ' . $pedido->ID_Pedido_Curso . ' - Total pagado: ' . $pedido->total_pagos . ' - Total curso: ' . $pedido->Ss_Total);
+                //call job SendConstanciaCurso
                 SendConstanciaCurso::dispatch(
                     $pedido->Nu_Celular_Entidad,
                     $pedido
                 );
             }
+            
             if ($pedidos->isEmpty()) {
-                Log::info('No pending pedidos found.');
+                Log::info('No pending pedidos found with confirmed payments.');
                 return 0; // No hay pedidos pendientes
             }
+            
+            Log::info('Successfully queued ' . $pedidos->count() . ' constancias to send.');
+            return 0;
         } catch (\Exception $e) {
             Log::error('Error fetching data: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return 1;
         }
     }
