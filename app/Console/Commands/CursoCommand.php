@@ -51,6 +51,8 @@ class CursoCommand extends Command
             Log::info('Fetching data from the database...');
             $campanas = DB::table($this->table_campana)
                 ->whereNull('Fe_Borrado')
+                ->where('Fe_Fin', '>=', now())
+                ->whereYear('Fe_Fin', date('Y'))
                 ->get();
             
             Log::info('Found ' . $campanas->count() . ' campanas.');
