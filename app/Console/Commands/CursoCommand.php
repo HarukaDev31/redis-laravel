@@ -63,6 +63,7 @@ class CursoCommand extends Command
                 ->where('CC.tipo_curso', 1)
                 ->where('CC.Nu_Estado', 2)
                 ->where('CC.send_constancia', 'PENDING')
+                ->where('campana_curso.Fe_Fin', '>=', now())
                 ->join($this->table_campana, 'CC.ID_Campana', '=', 'campana_curso.ID_Campana')
                 ->join($this->table_entidad, 'CC.ID_Entidad', '=', 'entidad.ID_Entidad')
                 ->join($this->table_usuario, 'entidad.ID_Entidad', '=', 'usuario.ID_Entidad')
