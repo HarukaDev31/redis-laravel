@@ -125,7 +125,8 @@ class WhatsAppController extends Controller
         Log::info('sendMessage', $request->all());
         $validator = Validator::make($request->all(), [
             'message' => 'required|string',
-            'phoneNumberId' => 'required|string'
+            'phoneNumberId' => 'required|string',
+            'fromNumber'=>'required|string'
         ]);
 
         if ($validator->fails()) {
@@ -139,7 +140,8 @@ class WhatsAppController extends Controller
             \App\Jobs\SendSimpleMessageJobV2::dispatch(
                 $request->input('message'),
                 $request->input('phoneNumberId'),
-                0
+                0,
+                $request->input('fromNumber')??'consolidado'
             )->delay(now()->addSeconds($request->input('sleep', 0)));
 
             return response()->json([
