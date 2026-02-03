@@ -125,7 +125,7 @@ class CursoCommand extends Command
             
             Log::info('Found ' . $pedidos->count() . ' pedidos to process after filtering.');
             Log::info('Processing each pedido...');
-            
+            return;
             foreach ($pedidos as $pedido) {
                 Log::info('Processing pedido ID: ' . $pedido->ID_Pedido_Curso . ' - Total pagado: ' . $pedido->total_pagos . ' - Total curso: ' . $pedido->Ss_Total);
                 //call job SendConstanciaCurso
