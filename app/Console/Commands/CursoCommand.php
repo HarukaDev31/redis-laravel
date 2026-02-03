@@ -49,9 +49,10 @@ class CursoCommand extends Command
             //get all campanas where Fe_Borrado is null get all pedidos where Fe_Borrado is null Fe_Fin and ID_Campana
             Log::info('Starting the curso command...');
             Log::info('Fetching data from the database...');
+            // Solo campañas ya finalizadas (Fe_Fin en el pasado) para enviar constancias
             $campanas = DB::table($this->table_campana)
                 ->whereNull('Fe_Borrado')
-                ->where('Fe_Fin', '>=', now())
+                ->where('Fe_Fin', '<=', now())
                 ->whereYear('Fe_Fin', date('Y'))
                 ->get();
             ;
