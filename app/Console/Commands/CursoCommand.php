@@ -100,7 +100,6 @@ class CursoCommand extends Command
             
             $allPedidos = $pedidosQuery->get();
             Log::info('Found ' . $allPedidos->count() . ' pedidos before filtering by payments.');
-            return;
             // Filtrar en PHP para mejor debugging
             $pedidos = $allPedidos->filter(function ($pedido) {
                 $totalPagos = (float) $pedido->total_pagos;
