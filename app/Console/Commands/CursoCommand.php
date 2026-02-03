@@ -56,16 +56,13 @@ class CursoCommand extends Command
                 ->whereYear('Fe_Fin', date('Y'))
                 ->get();
             ;
-            Log::info('Found ' . $campanas->count() . ' campanas.');
-            Log::info('Campanas: ' . json_encode($campanas));
-            return;
+
             // Primero obtener todos los pedidos que cumplan las condiciones básicas
             $pedidosQuery = DB::table($this->table_pedido_curso . ' AS CC')
                 ->whereIn('CC.ID_Campana', $campanas->pluck('ID_Campana'))
                 ->where('CC.tipo_curso', 1)
                 ->where('CC.Nu_Estado', 2)
                 ->where('CC.send_constancia', 'PENDING')
-                ->where('campana_curso.Fe_Fin', '>=', now())
                 ->join($this->table_campana, 'CC.ID_Campana', '=', 'campana_curso.ID_Campana')
                 ->join($this->table_entidad, 'CC.ID_Entidad', '=', 'entidad.ID_Entidad')
                 ->join($this->table_usuario, 'entidad.ID_Entidad', '=', 'usuario.ID_Entidad')
@@ -103,7 +100,7 @@ class CursoCommand extends Command
             
             $allPedidos = $pedidosQuery->get();
             Log::info('Found ' . $allPedidos->count() . ' pedidos before filtering by payments.');
-            
+            return;
             // Filtrar en PHP para mejor debugging
             $pedidos = $allPedidos->filter(function ($pedido) {
                 $totalPagos = (float) $pedido->total_pagos;
