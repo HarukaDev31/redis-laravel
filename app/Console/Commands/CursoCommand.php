@@ -57,7 +57,7 @@ class CursoCommand extends Command
             ;
             Log::info('Found ' . $campanas->count() . ' campanas.');
             Log::info('Campanas: ' . json_encode($campanas));
-            return
+            return;
             // Primero obtener todos los pedidos que cumplan las condiciones básicas
             $pedidosQuery = DB::table($this->table_pedido_curso . ' AS CC')
                 ->whereIn('CC.ID_Campana', $campanas->pluck('ID_Campana'))
