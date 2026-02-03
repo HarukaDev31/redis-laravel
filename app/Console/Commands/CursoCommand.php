@@ -54,9 +54,10 @@ class CursoCommand extends Command
                 ->where('Fe_Fin', '>=', now())
                 ->whereYear('Fe_Fin', date('Y'))
                 ->get();
-            return;
+            ;
             Log::info('Found ' . $campanas->count() . ' campanas.');
             Log::info('Campanas: ' . json_encode($campanas));
+            return
             // Primero obtener todos los pedidos que cumplan las condiciones básicas
             $pedidosQuery = DB::table($this->table_pedido_curso . ' AS CC')
                 ->whereIn('CC.ID_Campana', $campanas->pluck('ID_Campana'))
