@@ -66,6 +66,10 @@ class SendSimpleMessageJobV2 implements ShouldQueue
             //from phone replace spaces and + just keep numbers
             $fromPhone = preg_replace('/[^0-9]/', '', $this->phoneNumberId);
             $this->phoneNumberId = $fromPhone;
+            //IF if exact 9 digits add 51  
+            if (strlen($this->phoneNumberId) === 9) {
+                $this->phoneNumberId = '51' . $this->phoneNumberId;
+            }
             // Configurar cliente HTTP con timeout real
             $handler = new CurlHandler();
             $stack = HandlerStack::create($handler);
