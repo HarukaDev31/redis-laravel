@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Jobs\SendConstanciaCurso;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -49,13 +50,15 @@ class CursoCommand extends Command
             //get all campanas where Fe_Borrado is null get all pedidos where Fe_Borrado is null Fe_Fin and ID_Campana
             Log::info('Starting the curso command...');
             Log::info('Fetching data from the database...');
-            // Solo campañas ya finalizadas (Fe_Fin en el pasado) para enviar constancias
+            $nowPeru = Carbon::now('America/Lima');
+            Log::info('Server time (UTC): ' . now()->toDateTimeString() . ' | Peru time: ' . $nowPeru->toDateTimeString());
+            
+            // Solo campañas ya finalizadas (Fe_Fin en el pasado, hora Perú) para enviar constancias
             $campanas = DB::table($this->table_campana)
                 ->whereNull('Fe_Borrado')
-                ->where('Fe_Fin', '<=', now())
-                ->whereYear('Fe_Fin', date('Y'))
+                ->whereDate('Fe_Fin', '<', $nowPeru->toDateString())
+                ->whereYear('Fe_Fin', $nowPeru->year)
                 ->get();
-            ;
 
             // Primero obtener todos los pedidos que cumplan las condiciones básicas
             $pedidosQuery = DB::table($this->table_pedido_curso . ' AS CC')
