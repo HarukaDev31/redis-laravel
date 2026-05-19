@@ -7,7 +7,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Handler\CurlHandler;
@@ -82,9 +81,6 @@ class SendSimpleMessageJobV2 implements ShouldQueue
                 'verify' => false // Solo si no usas SSL
             ]);
 
-            // log author
-            Log::info('Authorization: ' . env('API_KEY_V2'));
-            //ADD API KEY AUTHORIZATION
             $response = $client->post($this->apiUrl, [
                 'headers' => [
                     'Content-Type' => 'application/json',
@@ -97,28 +93,59 @@ class SendSimpleMessageJobV2 implements ShouldQueue
                 ]
             ]);
 
-            // Verificar respuesta
-            if ($response->getStatusCode() != 201) {
-                throw new \Exception("Error al enviar mensaje simple: " . $response->getBody());
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody()->getContents();
+
+            if ($statusCode < 200 || $statusCode >= 300) {
+                throw new \Exception("Error al enviar mensaje simple (HTTP {$statusCode}): {$body}");
             }
+
+            $data = json_decode($body, true);
+            $this->assertWhatsappApiSuccess($data, $body);
 
             Log::info('Mensaje simple enviado', [
                 'phoneNumberId' => $this->phoneNumberId,
+                'fromNumberId' => $this->fromNumberId,
                 'message' => substr($this->message, 0, 100) . (strlen($this->message) > 100 ? '...' : ''),
-                'statusCode' => $response->getStatusCode(),
-                'apiUrl' => $this->apiUrl
+                'statusCode' => $statusCode,
+                'apiUrl' => $this->apiUrl,
+                'apiResponse' => $data ?? $body,
             ]);
-            $this->delete(); // Esto es clave para indicar finalización exitosa
 
-            return json_decode($response->getBody(), true);
+            return $data;
 
         } catch (\Throwable $e) {
-            Log::error('Error en SendSimpleMessageJob: ' . $e->getMessage(), [
+            Log::error('Error en SendSimpleMessageJobV2: ' . $e->getMessage(), [
                 'phoneNumberId' => $this->phoneNumberId,
+                'fromNumberId' => $this->fromNumberId,
                 'apiUrl' => $this->apiUrl,
                 'trace' => $e->getTraceAsString()
             ]);
             $this->fail($e);
+        }
+    }
+
+    /**
+     * @param array<string, mixed>|null $data
+     */
+    private function assertWhatsappApiSuccess(?array $data, string $rawBody): void
+    {
+        if (! is_array($data)) {
+            return;
+        }
+
+        if (array_key_exists('success', $data) && $data['success'] === false) {
+            $message = $data['message'] ?? $data['error'] ?? $rawBody;
+            throw new \Exception('WhatsApp API rechazó el envío: ' . $message);
+        }
+
+        if (! empty($data['error'])) {
+            throw new \Exception('WhatsApp API error: ' . (is_string($data['error']) ? $data['error'] : json_encode($data['error'])));
+        }
+
+        $status = isset($data['status']) ? strtolower((string) $data['status']) : null;
+        if (in_array($status, ['error', 'failed', 'disconnected'], true)) {
+            throw new \Exception('WhatsApp API status: ' . $data['status']);
         }
     }
 
