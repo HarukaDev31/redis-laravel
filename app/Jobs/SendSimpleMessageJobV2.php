@@ -52,6 +52,9 @@ class SendSimpleMessageJobV2 implements ShouldQueue
         if($this->fromNumberId === "administracion"){
             return env('WHATSAPP_SERVICE_API_URL').'sendText/ADMINISTRACION';
         }
+        if($this->fromNumberId === "soporte"){
+            return env('WHATSAPP_SERVICE_API_URL').'sendText/SOPORTE';
+        }
         return env('WHATSAPP_SERVICE_API_URL').'sendText/COORDINATION';
     }
 
