@@ -24,17 +24,20 @@ class SendSimpleMessageJobV2 implements ShouldQueue
     private $phoneNumberId;
     private $sleep;
     private $fromNumberId;
+    private $mentioned;
 
     public function __construct(
         string $message,
         string $phoneNumberId = "51912705923@c.us",
         int $sleep = 0,
-        string $fromNumberId = "consolidado"
+        string $fromNumberId = "consolidado",
+        $mentioned = []
     ) {
         $this->message = $message;
         $this->phoneNumberId = $phoneNumberId;
         $this->sleep = $sleep;
         $this->fromNumberId = $fromNumberId;
+        $this->mentioned = is_array($mentioned) ? $mentioned : [];
         $this->apiUrl = $this->resolveApiUrl();
     }
 
@@ -84,16 +87,22 @@ class SendSimpleMessageJobV2 implements ShouldQueue
                 'verify' => false // Solo si no usas SSL
             ]);
 
+            $payload = [
+                'text' => $this->message,
+                'number' => $this->phoneNumberId
+            ];
+            $mentioned = $this->normalizedMentioned();
+            if (count($mentioned) > 0) {
+                $payload['mentioned'] = $mentioned;
+            }
+
             $response = $client->post($this->apiUrl, [
                 'headers' => [
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
                     'apikey' => env('API_KEY_V2'),
                 ],
-                'json' => [
-                    'text' => $this->message,
-                    'number' => $this->phoneNumberId
-                ]
+                'json' => $payload
             ]);
 
             $statusCode = $response->getStatusCode();
@@ -109,6 +118,7 @@ class SendSimpleMessageJobV2 implements ShouldQueue
             Log::info('Mensaje simple enviado', [
                 'phoneNumberId' => $this->phoneNumberId,
                 'fromNumberId' => $this->fromNumberId,
+                'mentioned' => $mentioned,
                 'message' => substr($this->message, 0, 100) . (strlen($this->message) > 100 ? '...' : ''),
                 'statusCode' => $statusCode,
                 'apiUrl' => $this->apiUrl,
@@ -126,6 +136,28 @@ class SendSimpleMessageJobV2 implements ShouldQueue
             ]);
             $this->fail($e);
         }
+    }
+
+    /**
+     * Números internacionales (51XXXXXXXXX) para Evolution `mentioned`.
+     *
+     * @return string[]
+     */
+    private function normalizedMentioned(): array
+    {
+        $out = [];
+        foreach ($this->mentioned as $item) {
+            $digits = preg_replace('/[^0-9]/', '', (string) $item);
+            if ($digits === null || $digits === '') {
+                continue;
+            }
+            if (strlen($digits) === 9) {
+                $digits = '51' . $digits;
+            }
+            $out[] = $digits;
+        }
+
+        return array_values(array_unique($out));
     }
 
     /**
