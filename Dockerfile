@@ -1,10 +1,11 @@
 # Imagen de redis-laravel sobre PHP 8.5.12 (php-fpm + horizon + scheduler usan la misma imagen).
 FROM php:8.5.12-fpm-alpine AS base
 
-RUN apk add --no-cache icu-libs libzip libpng libjpeg-turbo freetype \
-    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS icu-dev libzip-dev libpng-dev libjpeg-turbo-dev freetype-dev linux-headers \
+# Solo las extensiones que usa el proyecto (gd: dompdf, pcntl: horizon, redis, pdo_mysql)
+RUN apk add --no-cache libpng libjpeg-turbo freetype \
+    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS libpng-dev libjpeg-turbo-dev freetype-dev linux-headers \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"$(nproc)" pdo_mysql pcntl bcmath gd intl zip \
+    && docker-php-ext-install -j"$(nproc)" pdo_mysql pcntl gd \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && apk del .build-deps \
