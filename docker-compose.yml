@@ -8,14 +8,13 @@
 #   - nginx: DOCKER_HTTP_PORT (8383 por defecto) -> el nginx del servidor hace proxy_pass aquí
 #
 # REDIS_HOST/REDIS_PORT del .env se ignoran: el compose los fuerza al redis de abajo.
-# Imágenes: las construye GitHub Actions (deploy-prod.yml) y las sube a GHCR; el servidor solo hace pull.
-# Build local (opcional): docker compose up -d --build
+# Uso: docker compose up -d --build
 
 x-app: &app
   build:
     context: .
     target: app
-  image: ${REDIS_LARAVEL_IMAGE:-ghcr.io/harukadev31/redis-laravel}:app-${IMAGE_TAG:-latest}
+  image: redis-laravel:php8.5
   network_mode: host
   restart: unless-stopped
   env_file: .env
@@ -46,7 +45,7 @@ services:
     build:
       context: .
       target: web
-    image: ${REDIS_LARAVEL_IMAGE:-ghcr.io/harukadev31/redis-laravel}:web-${IMAGE_TAG:-latest}
+    image: redis-laravel-web:php8.5
     network_mode: host
     restart: unless-stopped
     environment:

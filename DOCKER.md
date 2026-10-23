@@ -21,28 +21,13 @@ El servicio corre en contenedores con PHP 8.5.12 y Laravel 13. No hace falta ins
 
 ## Despliegue
 
-Automático con GitHub Actions (`.github/workflows/deploy-prod.yml`) al hacer merge a `main`:
-
-1. **build** (en GitHub, no en el servidor): construye la imagen, prueba `php -v` y `route:list`, y sube
-   `ghcr.io/harukadev31/redis-laravel:app-<sha>` y `:web-<sha>` a GHCR.
-2. **deploy** (environment `production`): por SSH hace `git merge --ff-only origin/main` en
-   `/var/www/html/redis-laravel`, `docker compose pull` (login a GHCR con el token temporal del job) y
-   `docker compose up -d --no-build`. El servidor no compila nada.
-
-Secrets del repo (los mismos valores que en intranet_back): `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`,
-`DEPLOY_SSH_PORT` (opcional) y `REDIS_LARAVEL_DEPLOY_PATH` (opcional, por defecto `/var/www/html/redis-laravel`).
-
-A mano en el servidor (con las imágenes ya en GHCR):
-
 ```bash
-cd /var/www/html/redis-laravel   # carpeta del servicio, con su .env
+cd /var/www/html/redis-laravel   # carpeta actual del servicio, con su .env
 git pull
-docker compose pull && docker compose up -d
+docker compose up -d --build
 docker compose ps
 docker compose logs -f app horizon scheduler
 ```
-
-`docker compose up -d --build` sigue funcionando para construir en el propio servidor, pero gasta mucha CPU.
 
 Luego, en el nginx del servidor, el sitio de este servicio pasa de `fastcgi_pass` a php 7.4 a un proxy al contenedor:
 
