@@ -1,0 +1,67 @@
+# redis-laravel en PHP 8.5.12.
+#
+# Todo corre con network_mode: host para que la app use la MySQL del propio servidor
+# con las mismas credenciales del .env de esta carpeta (DB_HOST=127.0.0.1 sigue sirviendo).
+# Por eso cada servicio escucha en un puerto propio de localhost:
+#   - redis: DOCKER_REDIS_PORT, 6383 por defecto (en el servidor ya hay otros redis en los puertos de siempre)
+#   - php-fpm: DOCKER_FPM_PORT (9383 por defecto)
+#   - nginx: DOCKER_HTTP_PORT (8383 por defecto) -> el nginx del servidor hace proxy_pass aquí
+#
+# REDIS_HOST/REDIS_PORT del .env se ignoran: el compose los fuerza al redis de abajo.
+# Uso: docker compose up -d --build
+
+x-app: &app
+  build:
+    context: .
+    target: app
+  image: redis-laravel:php8.5
+  network_mode: host
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    REDIS_HOST: 127.0.0.1
+    REDIS_PORT: ${DOCKER_REDIS_PORT:-6383}
+    FPM_PORT: ${DOCKER_FPM_PORT:-9383}
+  volumes:
+    - ./storage:/var/www/html/storage
+  depends_on:
+    - redis
+
+services:
+  app:
+    <<: *app
+
+  horizon:
+    <<: *app
+    command: ["php", "artisan", "horizon"]
+    stop_signal: SIGTERM
+    stop_grace_period: 60s
+
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work"]
+
+  web:
+    build:
+      context: .
+      target: web
+    image: redis-laravel-web:php8.5
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      HTTP_PORT: ${DOCKER_HTTP_PORT:-8383}
+      FPM_PORT: ${DOCKER_FPM_PORT:-9383}
+      NGINX_ENVSUBST_FILTER: "HTTP_PORT|FPM_PORT"
+    depends_on:
+      - app
+
+  redis:
+    image: redis:7-alpine
+    network_mode: host
+    restart: unless-stopped
+    command: ["redis-server", "--bind", "127.0.0.1", "--port", "${DOCKER_REDIS_PORT:-6383}", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
