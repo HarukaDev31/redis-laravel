@@ -59,7 +59,14 @@ services:
     image: redis:7-alpine
     network_mode: host
     restart: unless-stopped
-    command: ["redis-server", "--bind", "127.0.0.1", "--port", "${DOCKER_REDIS_PORT:-6383}", "--appendonly", "yes"]
+    # Usa la misma REDIS_PASSWORD del .env que la app (si el .env no trae contraseña, arranca sin ella)
+    env_file: .env
+    environment:
+      REDIS_LISTEN_PORT: ${DOCKER_REDIS_PORT:-6383}
+    command:
+      - sh
+      - -c
+      - exec redis-server --bind 127.0.0.1 --port "$$REDIS_LISTEN_PORT" --appendonly yes $${REDIS_PASSWORD:+--requirepass "$$REDIS_PASSWORD"}
     volumes:
       - redis-data:/data
 
