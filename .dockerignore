@@ -1,0 +1,12 @@
+.git
+.env
+.env.*
+vendor
+node_modules
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/app/public/*
+bootstrap/cache/*.php
+docker-compose.override.yml
