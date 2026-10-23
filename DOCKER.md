@@ -16,6 +16,7 @@ El servicio corre en contenedores con PHP 8.5.12 y Laravel 13. No hace falta ins
   del `.env` de la carpeta donde se hace el pull (no se levanta MySQL en Docker). `DB_HOST=127.0.0.1` sigue funcionando.
 - El redis va en el puerto **6383** porque en el servidor ya hay otros redis. El compose fuerza `REDIS_HOST=127.0.0.1`
   y `REDIS_PORT=6383` aunque el `.env` diga otra cosa.
+  Usa la misma `REDIS_PASSWORD` del `.env` (si no hay, arranca sin contraseña); solo escucha en 127.0.0.1.
 - `storage/` se monta desde la carpeta del servidor (logs, PDFs de constancias y fuentes de dompdf se conservan).
 - Los puertos se pueden cambiar poniendo `DOCKER_REDIS_PORT`, `DOCKER_FPM_PORT` o `DOCKER_HTTP_PORT` en el `.env`.
 
