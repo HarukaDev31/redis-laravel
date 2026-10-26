@@ -58,6 +58,7 @@ return [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
+            'permission' => 0666,
         ],
 
         'daily' => [
@@ -65,6 +66,8 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => 30,
+            // horizon/scheduler (root) y php-fpm (www-data) comparten el log diario: que lo creado por uno lo pueda escribir el otro
+            'permission' => 0666,
         ],
 
         'slack' => [
